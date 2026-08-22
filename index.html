@@ -71,6 +71,9 @@ body.viewer .no-view{display:none !important;}
 .remark-add{display:flex;gap:6px;margin-top:8px;align-items:center;}
 .remark-add input[type=text]{flex:1;min-width:0;}
 .rem-badge{display:inline-block;font-size:10.5px;font-weight:700;color:#7c3aed;background:#ede9fe;border-radius:99px;padding:1px 7px;margin-left:6px;vertical-align:middle;}
+.rem-head{position:relative;}
+.rem-del{background:none;border:none;font-size:12px;color:#94a3b8;cursor:pointer;padding:0 2px;float:right;line-height:1;}
+.rem-del:hover{color:#dc2626;}
 #task-remarks-list,#mom-remarks-list{max-height:160px;overflow-y:auto;border:1px solid var(--line);border-radius:10px;padding:6px 10px;background:#fafbfc;}
 .task-title{cursor:pointer;}
 .mom-card h3{cursor:pointer;}
@@ -394,6 +397,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid #bfdbfe;border-color:v
   <section id="view-report" class="hidden">
     <div class="toolbar no-print">
       <p class="muted" style="flex:1">This is the <b>stakeholder view</b> — a clean summary you can print to PDF and email, or share the file/link with shareholders.</p>
+      <button class="btn ghost" onclick="exportExcel()">⬇️ Export to Excel</button>
       <button class="btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
     </div>
     <div id="report-area"></div>
@@ -408,6 +412,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid #bfdbfe;border-color:v
       <button class="btn ghost small" onclick="setWeekRange(0)">This week</button>
       <button class="btn ghost small" onclick="setWeekRange(30)">Last 30 days</button>
       <span style="flex:1"></span>
+      <button class="btn ghost" onclick="exportWeeklyExcel()">⬇️ Export weekly to Excel</button>
       <button class="btn" onclick="window.print()">🖨️ Print weekly report</button>
     </div>
     <div id="weekly-area"></div>
@@ -548,6 +553,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid #bfdbfe;border-color:v
     <h4 style="font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--mut);margin:18px 0 8px;">Data management</h4>
     <div style="display:flex;gap:10px;flex-wrap:wrap;">
       <button class="btn ghost small" onclick="exportBackup()">⬇️ Export backup (JSON)</button>
+      <button class="btn ghost small" onclick="exportExcel()">⬇️ Export to Excel (.xlsx)</button>
       <button class="btn ghost small" onclick="document.getElementById('import-file').click()">⬆️ Import backup</button>
       <input type="file" id="import-file" accept=".json" class="hidden" onchange="importBackup(event)">
       <button class="btn ghost small" onclick="loadDemo()">🧪 Load demo data</button>
@@ -730,7 +736,7 @@ function evaluateLock(){
 }
 /* ---------- 💬 remarks ---------- */
 function remarkList(type, parentId){
-  return (state.remarks||[]).filter(r=>r.type===type && r.parentId===parentId);
+  return (state.remarks||[]).filter(r=>r.type===type && r.parentId===parentId && !r.deleted);
 }
 function renderRemarks(container, list){
   const rs = [...list].sort((a,b)=>a.createdAt-b.createdAt);
@@ -738,9 +744,20 @@ function renderRemarks(container, list){
     const d = new Date(r.createdAt);
     const when = d.toLocaleDateString("en-GB",{day:"2-digit",month:"short"})+" "+d.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
     return '<div class="rem-item"><div class="rem-av">'+initials(r.author)+'</div>'+
-      '<div class="rem-body" style="flex:1"><div class="rem-head"><b>'+esc(r.author)+'</b> <span class="muted">'+when+'</span></div>'+
-      '<div class="rem-text">'+esc(r.text)+'</div></div></div>';
+      '<div class="rem-body" style="flex:1"><div class="rem-head"><b>'+esc(r.author)+'</b> <span class="muted">'+when+'</span>'+
+      (!state.viewerMode ? '<button class="rem-del" onclick="deleteRemark(\''+r.id+'\')" title="Delete this remark">🗑️</button>' : '')+
+      '</div><div class="rem-text">'+esc(r.text)+'</div></div></div>';
   }).join("") : '<p class="muted" style="padding:6px 0">No remarks yet.</p>';
+}
+function deleteRemark(id){
+  if(viewerGuard()) return;
+  const r = (state.remarks||[]).find(x=>x.id===id && !x.deleted);
+  if(!r) return;
+  openConfirm("Delete this remark by <b>"+esc(r.author)+"</b>? It will be removed for everyone (synced to cloud).", ()=>{
+    r.deleted = true;
+    r.updatedAt = Date.now();
+    pushState("🗑️ Remark deleted & synced.");
+  });
 }
 function remarkAuthorPrefill(){
   try{ return localStorage.getItem("aifactory_remark_author") || ""; }catch(e){ return ""; }
@@ -748,30 +765,33 @@ function remarkAuthorPrefill(){
 function saveRemarkAuthor(name){
   try{ localStorage.setItem("aifactory_remark_author", name); }catch(e){}
 }
-async function pushRemark(type, parentId, text, author){
+async function pushState(msg){
   const url = cloudId();
-  if(!url){ toast("⚠️ Connect the cloud first — remarks sync to the shared cloud."); return; }
-  if(!text){ toast("⚠️ Type a remark first."); return; }
+  if(!url){ toast("⚠️ Connect the cloud first."); return; }
   try{
     let remote = null;
     try{ remote = await httpJson(url, "GET"); }catch(e){}
     if(remote && typeof remote==="object"){ Object.assign(state, mergeStates(remote, state)); }
-    if(!Array.isArray(state.remarks)) state.remarks = [];
-    state.remarks.push({id:uid("r"), type:type, parentId:parentId, author:author||"Team member", text:text, createdAt:Date.now(), updatedAt:Date.now()});
     state.rev = (state.rev||0) + 1;
     const payload = JSON.parse(JSON.stringify(state));
     payload.rev = state.rev;
-    payload.updatedBy = (state.project.lead||author||"Team member");
+    payload.updatedBy = (state.project.lead||"Team member").trim() || "Team member";
     delete payload.lastSyncedRev;
     await httpJson(url, "PUT", payload);
     state.lastSyncedRev = state.rev;
     persistSilent();
     renderAll();
     refreshOpenModalRemarks();
-    toast("💬 Remark added & synced to cloud.");
+    toast(msg || "✅ Synced to cloud.");
   }catch(e){
-    toast("❌ Could not sync remark — check your connection and try again.");
+    toast("❌ Could not sync — check your connection and try again.");
   }
+}
+async function pushRemark(type, parentId, text, author){
+  if(!text){ toast("⚠️ Type a remark first."); return; }
+  if(!Array.isArray(state.remarks)) state.remarks = [];
+  state.remarks.push({id:uid("r"), type:type, parentId:parentId, author:author||"Team member", text:text, createdAt:Date.now(), updatedAt:Date.now()});
+  await pushState("💬 Remark added & synced to cloud.");
 }
 function addTaskRemark(){
   if(!editingTaskId){ toast("Open a task first."); return; }
@@ -1368,6 +1388,190 @@ function deleteMom(id){
   });
 }
 
+/* ============ ⬇️ EXPORT TO EXCEL (.xlsx) — pure JS, no libraries ============ */
+function crc32Bytes(bytes){
+  let table = crc32Bytes.table;
+  if(!table){
+    table = [];
+    for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1); table[n]=c>>>0; }
+    crc32Bytes.table = table;
+  }
+  let c = 0xFFFFFFFF;
+  for(let i=0;i<bytes.length;i++) c = table[(c ^ bytes[i]) & 0xFF] ^ (c>>>8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+function utf8bytes(str){
+  const u = unescape(encodeURIComponent(str));
+  const a = new Uint8Array(u.length);
+  for(let i=0;i<u.length;i++) a[i]=u.charCodeAt(i);
+  return a;
+}
+function zipStore(entries){
+  /* entries: [{name, data(string)}] — builds a valid STORED zip (no compression) */
+  const u16 = v => { const b=new Uint8Array(2); new DataView(b.buffer).setUint16(0,v,true); return b; };
+  const u32 = v => { const b=new Uint8Array(4); new DataView(b.buffer).setUint32(0,v,true); return b; };
+  const chunks = [], central = [];
+  let offset = 0;
+  entries.forEach(e=>{
+    const name = utf8bytes(e.name), data = utf8bytes(e.data);
+    const crc = crc32Bytes(data);
+    const local = new Uint8Array(30);
+    new DataView(local.buffer).setUint32(0,0x04034b50,true);
+    new DataView(local.buffer).setUint16(4,20,true);
+    new DataView(local.buffer).setUint16(6,0x0800,true); /* UTF-8 names */
+    new DataView(local.buffer).setUint32(14,crc,true);
+    new DataView(local.buffer).setUint32(18,data.length,true);
+    new DataView(local.buffer).setUint32(22,data.length,true);
+    new DataView(local.buffer).setUint16(26,name.length,true);
+    chunks.push(local, name, data);
+    central.push({name, crc, size:data.length, off:offset});
+    offset += 30 + name.length + data.length;
+  });
+  const cdStart = offset;
+  central.forEach(e=>{
+    const h = new Uint8Array(46);
+    new DataView(h.buffer).setUint32(0,0x02014b50,true);
+    new DataView(h.buffer).setUint16(4,20,true);
+    new DataView(h.buffer).setUint16(6,20,true);
+    new DataView(h.buffer).setUint16(8,0x0800,true);
+    new DataView(h.buffer).setUint32(16,e.crc,true);
+    new DataView(h.buffer).setUint32(20,e.size,true);
+    new DataView(h.buffer).setUint32(24,e.size,true);
+    new DataView(h.buffer).setUint16(28,e.name.length,true);
+    new DataView(h.buffer).setUint32(42,e.off,true);
+    chunks.push(h, e.name);
+    offset += 46 + e.name.length;
+  });
+  const eocd = new Uint8Array(22);
+  new DataView(eocd.buffer).setUint32(0,0x06054b50,true);
+  new DataView(eocd.buffer).setUint16(8,central.length,true);
+  new DataView(eocd.buffer).setUint16(10,central.length,true);
+  new DataView(eocd.buffer).setUint32(12,offset-cdStart,true);
+  new DataView(eocd.buffer).setUint32(16,cdStart,true);
+  chunks.push(eocd);
+  const total = chunks.reduce((s,c)=>s+c.length,0);
+  const out = new Uint8Array(total); let p = 0;
+  chunks.forEach(c=>{ out.set(c,p); p += c.length; });
+  return out;
+}
+function xesc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function colL(n){ let s=""; while(n>0){ n--; s=String.fromCharCode(65+(n%26))+s; n=Math.floor(n/26); } return s; }
+function isoToSerial(iso){
+  if(!iso) return null;
+  const p = iso.split("-").map(Number);
+  return Math.round((Date.UTC(p[0],p[1]-1,p[2]) - Date.UTC(1899,11,30))/86400000);
+}
+function sheetXml(header, rows, opts){
+  const colCount = header.length;
+  let xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+  xml += '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">';
+  if(opts && opts.freeze) xml += '<sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>';
+  xml += '<cols>';
+  for(let i=1;i<=colCount;i++) xml += '<col min="'+i+'" max="'+i+'" width="'+((opts&&opts.widths&&opts.widths[i-1])||14)+'" customWidth="1"/>';
+  xml += '</cols><sheetData>';
+  xml += '<row r="1">'+header.map((h,i)=>'<c r="'+colL(i+1)+'1" t="inlineStr" s="3"><is><t>'+xesc(h)+'</t></is></c>').join("")+'</row>';
+  rows.forEach((row,ri)=>{
+    const rn = ri+2;
+    xml += '<row r="'+rn+'">'+row.map((cell,ci)=>{
+      const ref = colL(ci+1)+rn;
+      if(cell==null || cell.v==null || cell.v==="") return '<c r="'+ref+'"/>';
+      const v = cell.v;
+      if(cell.t==='n') return '<c r="'+ref+'"><v>'+v+'</v></c>';
+      if(cell.t==='d') return '<c r="'+ref+'" s="2"><v>'+isoToSerial(v)+'</v></c>';
+      if(cell.t==='p') return '<c r="'+ref+'" s="4"><v>'+v+'</v></c>';
+      return '<c r="'+ref+'" t="inlineStr"><is><t xml:space="preserve">'+xesc(v)+'</t></is></c>';
+    }).join("")+'</row>';
+  });
+  xml += '</sheetData>';
+  if(opts && opts.filter && rows.length) xml += '<autoFilter ref="A1:'+colL(colCount)+(rows.length+1)+'"/>';
+  xml += '</worksheet>';
+  return xml;
+}
+function exportExcel(){
+  const tasks = state.tasks, moms = state.moms, remarks = state.remarks||[];
+  const total = tasks.length;
+  const done = tasks.filter(t=>t.status==="done").length;
+  const ip = tasks.filter(t=>t.status==="in-progress").length;
+  const blocked = tasks.filter(t=>t.status==="blocked").length;
+  const over = tasks.filter(overdue).length;
+  const avg = total ? Math.round(tasks.reduce((s,t)=>s+pctOf(t),0)/total) : 0;
+  const h = health();
+  const now = new Date().toLocaleString("en-GB",{day:"2-digit",month:"long",year:"numeric",hour:"2-digit",minute:"2-digit"});
+  const lead = state.project.lead || "";
+
+  /* --- Summary sheet --- */
+  const sRows = [
+    [{v:"Project"},{v:state.project.name||"AI Automation Factory"}],
+    [{v:"Project Lead"},{v:lead||"—"}],
+    [{v:"Generated"},{v:now}],
+    [{v:"Overall Health"},{v:h.txt}],
+    [{v:"Overall Progress (%)"},{v:avg,t:"p"}],
+    [{v:"Total Tasks"},{v:total,t:"n"}],
+    [{v:"In Progress"},{v:ip,t:"n"}],
+    [{v:"Completed"},{v:done,t:"n"}],
+    [{v:"Overdue"},{v:over,t:"n"}],
+    [{v:"Blocked"},{v:blocked,t:"n"}],
+    [{v:"Open Tasks — High Priority"},{v:tasks.filter(t=>t.status!=="done"&&t.priority==="high").length,t:"n"}],
+    [{v:"Open Tasks — Medium Priority"},{v:tasks.filter(t=>t.status!=="done"&&t.priority==="medium").length,t:"n"}],
+    [{v:"Open Tasks — Low Priority"},{v:tasks.filter(t=>t.status!=="done"&&t.priority==="low").length,t:"n"}],
+  ];
+  ["Not Started","In Progress","Blocked","Done"].forEach(st=>{
+    sRows.push([{v:"Status — "+st},{v:tasks.filter(t=>t.status===st).length,t:"n"}]);
+  });
+
+  /* --- Tasks sheet --- */
+  const tRows = tasks.map(t=>{
+    const daysLeft = t.status==="done" ? "Done" : (t.target ? daysUntil(t.target) : "");
+    return [
+      {v:t.code},{v:t.title},{v:t.desc||""},{v:t.assignee||""},{v:t.area||""},{v:PRIOS[t.priority]?PRIOS[t.priority].label:t.priority},
+      {v:STATUSES[t.status]?STATUSES[t.status].label:t.status},
+      {v:t.start,t:"d"},{v:t.target,t:"d"},{v:(t.end||""),t:"d"},
+      {v:pctOf(t),t:"p"},{v:daysLeft, t:daysLeft==="Done"?"s":"n"},
+      {v:t.notes||""}
+    ];
+  });
+
+  /* --- MoM sheet --- */
+  const mRows = moms.map(m=>[
+    {v:m.date,t:"d"},{v:m.title||""},{v:m.attendees||""},
+    {v:lines(m.points).join("\n")},{v:lines(m.decisions).join("\n")},{v:lines(m.actions).join("\n")},
+    {v:(m.next||""),t:"d"}
+  ]);
+
+  /* --- Remarks sheet --- */
+  const rRows = remarks.map(r=>{
+    let parentRef = "";
+    if(r.type==="task"){ const t = tasks.find(x=>x.id===r.parentId); parentRef = t ? t.code+" — "+t.title : r.parentId; }
+    else { const m = moms.find(x=>x.id===r.parentId); parentRef = m ? m.title : r.parentId; }
+    const d = new Date(r.createdAt);
+    return [
+      {v:d.toLocaleString("en-GB",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"})},
+      {v:r.type==="task"?"Task":"Meeting"},{v:parentRef},{v:r.author||""},{v:r.text||""}
+    ];
+  });
+
+  const files = [
+    {name:"[Content_Types].xml", data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet3.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet4.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>'},
+    {name:"_rels/.rels", data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'},
+    {name:"xl/workbook.xml", data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Summary" sheetId="1" r:id="rId1"/><sheet name="Tasks" sheetId="2" r:id="rId2"/><sheet name="MoM" sheetId="3" r:id="rId3"/><sheet name="Remarks" sheetId="4" r:id="rId4"/></sheets></workbook>'},
+    {name:"xl/_rels/workbook.xml.rels", data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet3.xml"/><Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet4.xml"/><Relationship Id="rId5" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>'},
+    {name:"xl/styles.xml", data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="2"><numFmt numFmtId="164" formatCode="0&quot;%&quot;"/><numFmt numFmtId="165" formatCode="dd-mmm-yyyy"/></numFmts><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF0B2239"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="5"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>'},
+    {name:"xl/worksheets/sheet1.xml", data: sheetXml(["Item","Value"], sRows, {widths:[26,36]})},
+    {name:"xl/worksheets/sheet2.xml", data: sheetXml(["Task ID","Title","Description","Assignee","Area","Priority","Status","Start","Target","Ended","Progress %","Days Left","Notes"], tRows, {widths:[9,32,36,15,13,10,13,12,12,12,10,10,36], freeze:true, filter:true})},
+    {name:"xl/worksheets/sheet3.xml", data: sheetXml(["Date","Meeting Title","Attendees","Points Discussed","Decisions","Action Items","Next Meeting"], mRows, {widths:[12,26,26,40,34,38,12]})},
+    {name:"xl/worksheets/sheet4.xml", data: sheetXml(["Date & Time","Type","Task / Meeting","Author","Remark"], rRows, {widths:[20,10,40,16,44]})},
+  ];
+
+  const bytes = zipStore(files);
+  const blob = new Blob([bytes], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "AI-Factory-Export-"+todayISO()+".xlsx";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>{ try{ URL.revokeObjectURL(a.href); }catch(e){} }, 3000);
+  toast("⬇️ Excel file downloaded — 4 sheets (Summary, Tasks, MoM, Remarks)");
+}
+
 /* ---------- confirm modal ---------- */
 let confirmCb = null;
 function openConfirm(msg, cb){ $("confirm-msg").innerHTML = msg; confirmCb = cb; $("confirm-overlay").classList.remove("hidden"); }
@@ -1394,15 +1598,18 @@ function setWeekRange(days){
   renderWeekly();
 }
 let weekFrom = null, weekTo = null;
-function renderWeekly(){
-  if(!weekFrom){ setWeekRange(7); return; }
+function isoFromTs(ts){
+  const d = new Date(ts);
+  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+}
+function computeWeekly(){
+  if(!weekFrom){ setWeekRange(7); }
   weekFrom = $("w-from").value || weekFrom;
   weekTo = $("w-to").value || weekTo;
   const fromD = new Date(weekFrom+"T00:00:00"), toD = new Date(weekTo+"T23:59:59");
   const inDate = s => { if(!s) return false; const d = new Date(s+"T00:00:00"); return d>=fromD && d<=toD; };
   const inTs = ts => ts>=fromD.getTime() && ts<=toD.getTime();
-  const tasks = state.tasks, moms = state.moms, remarks = state.remarks||[];
-
+  const tasks = state.tasks, moms = state.moms, remarks = (state.remarks||[]).filter(r=>!r.deleted);
   const completed = tasks.filter(t=>t.status==="done" && (inDate(t.end) || inTs(t.updatedAt))).sort((a,b)=>((b.end||b.updatedAt)>(a.end||a.updatedAt)?1:-1));
   const started   = tasks.filter(t=>inDate(t.start)).sort((a,b)=>(a.start<b.start?1:-1));
   const updated   = tasks.filter(t=>inTs(t.updatedAt)).sort((a,b)=>b.updatedAt-a.updatedAt);
@@ -1411,10 +1618,14 @@ function renderWeekly(){
   const openTasks = tasks.filter(t=>t.status!=="done");
   const overdueNow = openTasks.filter(overdue);
   const dueSoon    = openTasks.filter(t=>t.target && daysUntil(t.target)>=0 && daysUntil(t.target)<=7);
-
   const avg = tasks.length ? Math.round(tasks.reduce((s,t)=>s+pctOf(t),0)/tasks.length) : 0;
   const h = health();
   const gen = new Date().toLocaleString("en-GB",{day:"2-digit",month:"long",year:"numeric",hour:"2-digit",minute:"2-digit"});
+  return {weekFrom, weekTo, completed, started, updated, meetings, newRem, overdueNow, dueSoon, avg, h, gen};
+}
+function renderWeekly(){
+  const W = computeWeekly();
+  const {completed, started, updated, meetings, newRem, overdueNow, dueSoon, avg, h, gen} = W;
 
   const rowsOf = (list, extra) => list.map(t=>
     '<tr><td><b>'+t.code+'</b></td><td>'+esc(t.title)+'</td><td>'+esc(t.assignee||"—")+'</td><td>'+fmtDate(extra==="start"?t.start:(t.end||t.target))+'</td><td><b>'+pctOf(t)+'%</b></td></tr>'
@@ -1446,7 +1657,7 @@ function renderWeekly(){
   '<div class="report">'+
     '<div class="report-head">'+
       '<h2>📈 Weekly Project Summary</h2>'+
-      '<div class="sub">'+fmtDate(weekFrom)+' → '+fmtDate(weekTo)+' · generated '+gen+' · Lead: '+esc(state.project.lead||"—")+'</div>'+
+      '<div class="sub">'+fmtDate(W.weekFrom)+' → '+fmtDate(W.weekTo)+' · generated '+gen+' · Lead: '+esc(state.project.lead||"—")+'</div>'+
       '<div style="margin-top:12px;"><span class="pill '+h.cls+'"><span class="dot"></span>'+h.txt+'</span> <span class="pill" style="background:rgba(255,255,255,.1);color:#e2e8f0;border:1px solid rgba(255,255,255,.2)">Overall progress '+avg+'%</span></div>'+
     '</div>'+
     '<div class="report-body">'+
@@ -1470,6 +1681,65 @@ function renderWeekly(){
       '<div class="foot">Auto-generated weekly summary · '+esc(state.project.name||"AI Automation Factory")+' · update the Tasks & MoM sheets daily to keep this accurate</div>'+
     '</div>'+
   '</div>';
+}
+function exportWeeklyExcel(){
+  const W = computeWeekly();
+  const {weekFrom, weekTo, completed, started, meetings, newRem, overdueNow, dueSoon, avg, h, gen} = W;
+  const lead = state.project.lead || "";
+  const summaryRows = [
+    [{v:"Period From"},{v:weekFrom,t:"d"}],
+    [{v:"Period To"},{v:weekTo,t:"d"}],
+    [{v:"Generated"},{v:gen}],
+    [{v:"Project Lead"},{v:lead||"—"}],
+    [{v:"Overall Health"},{v:h.txt}],
+    [{v:"Overall Progress (%)"},{v:avg,t:"p"}],
+    [{v:"Completed in period"},{v:completed.length,t:"n"}],
+    [{v:"Started in period"},{v:started.length,t:"n"}],
+    [{v:"Tasks updated in period"},{v:W.updated.length,t:"n"}],
+    [{v:"Meetings in period"},{v:meetings.length,t:"n"}],
+    [{v:"New remarks in period"},{v:newRem.length,t:"n"}],
+    [{v:"Due in next 7 days"},{v:dueSoon.length,t:"n"}],
+    [{v:"Overdue now"},{v:overdueNow.length,t:"n"}],
+  ];
+  const compRows = completed.map(t=>[
+    {v:t.code},{v:t.title},{v:t.assignee||""},{v:t.end||isoFromTs(t.updatedAt),t:"d"},{v:pctOf(t),t:"p"}
+  ]);
+  const startRows = started.map(t=>[
+    {v:t.code},{v:t.title},{v:t.assignee||""},{v:t.start,t:"d"},{v:pctOf(t),t:"p"}
+  ]);
+  const meetRows = meetings.map(m=>[
+    {v:m.date,t:"d"},{v:m.title||""},{v:m.attendees||""},{v:lines(m.decisions).join("\n")},{v:lines(m.actions).join("\n")}
+  ]);
+  const remRows = newRem.map(r=>{
+    let parentRef = "";
+    if(r.type==="task"){ const t=state.tasks.find(x=>x.id===r.parentId); parentRef = t ? t.code+" — "+t.title : r.parentId; }
+    else { const m=state.moms.find(x=>x.id===r.parentId); parentRef = m ? m.title : r.parentId; }
+    return [{v:isoFromTs(r.createdAt),t:"d"},{v:r.author||""},{v:r.type==="task"?"Task":"Meeting"},{v:parentRef},{v:r.text||""}];
+  });
+  const attRows = overdueNow.concat(dueSoon).map(t=>[
+    {v:t.code},{v:t.title},{v:t.assignee||""},{v:t.target,t:"d"},{v:daysUntil(t.target),t:"n"}
+  ]);
+  const files = [
+    {name:"[Content_Types].xml", data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet3.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet4.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet5.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet6.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>'},
+    {name:"_rels/.rels", data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'},
+    {name:"xl/workbook.xml", data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Summary" sheetId="1" r:id="rId1"/><sheet name="Completed" sheetId="2" r:id="rId2"/><sheet name="Started" sheetId="3" r:id="rId3"/><sheet name="Meetings" sheetId="4" r:id="rId4"/><sheet name="Remarks" sheetId="5" r:id="rId5"/><sheet name="Attention" sheetId="6" r:id="rId6"/></sheets></workbook>'},
+    {name:"xl/_rels/workbook.xml.rels", data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet3.xml"/><Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet4.xml"/><Relationship Id="rId5" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet5.xml"/><Relationship Id="rId6" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet6.xml"/><Relationship Id="rId7" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>'},
+    {name:"xl/styles.xml", data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="2"><numFmt numFmtId="164" formatCode="0&quot;%&quot;"/><numFmt numFmtId="165" formatCode="dd-mmm-yyyy"/></numFmts><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF0B2239"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="5"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>'},
+    {name:"xl/worksheets/sheet1.xml", data: sheetXml(["Item","Value"], summaryRows, {widths:[26,38]})},
+    {name:"xl/worksheets/sheet2.xml", data: sheetXml(["Task ID","Task","Assignee","Completed On","Progress %"], compRows, {widths:[9,38,15,13,11], freeze:true})},
+    {name:"xl/worksheets/sheet3.xml", data: sheetXml(["Task ID","Task","Assignee","Started On","Progress %"], startRows, {widths:[9,38,15,13,11], freeze:true})},
+    {name:"xl/worksheets/sheet4.xml", data: sheetXml(["Date","Meeting Title","Attendees","Decisions","Action Items"], meetRows, {widths:[12,26,26,40,40], freeze:true})},
+    {name:"xl/worksheets/sheet5.xml", data: sheetXml(["Date","Author","Type","Task / Meeting","Remark"], remRows, {widths:[12,16,10,40,44], freeze:true})},
+    {name:"xl/worksheets/sheet6.xml", data: sheetXml(["Task ID","Task","Assignee","Target Date","Days Left"], attRows, {widths:[9,38,15,13,10], freeze:true})},
+  ];
+  const bytes = zipStore(files);
+  const blob = new Blob([bytes], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "AI-Factory-Weekly-"+weekFrom+"-to-"+weekTo+".xlsx";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>{ try{ URL.revokeObjectURL(a.href); }catch(e){} }, 3000);
+  toast("⬇️ Weekly Excel downloaded — 6 sheets ("+fmtDate(weekFrom)+" → "+fmtDate(weekTo)+")");
 }
 
 /* ---------- settings ---------- */
@@ -1795,11 +2065,12 @@ Object.assign(window, {
   exportBackup, importBackup, loadDemo, confirmClear,
   openConfirm, closeConfirm, runConfirm,
   syncNow, connectFirebase, connectCustom, connectCustom2, disconnectCloud, shareLink, copyShareLink,
+  exportExcel, exportWeeklyExcel, deleteRemark, pushState,
   saveEditPass, tryUnlock, viewOnlyFallback, evaluateLock,
   addTaskRemark, addMomRemark, pushRemark,
   renderWeekly, setWeekRange
 });
 })();
 </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2f2b1524b69c508',t:'MTc4NzQxMDI1NQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2f317703ab187fe',t:'MTc4NzQxNDQzOA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
