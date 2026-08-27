@@ -1,0 +1,2368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Automation Factory — Project Tracker</title>
+<style>
+:root{
+  --navy:#0b2239; --navy2:#123659; --blue:#2563eb; --blue2:#1d4ed8;
+  --ink:#0f172a; --mut:#64748b; --line:#e2e8f0; --bg:#f1f5f9; --card:#ffffff;
+  --green:#15803d; --greenbg:#dcfce7; --amber:#b45309; --amberbg:#fef3c7;
+  --red:#b91c1c; --redbg:#fee2e2; --slate:#64748b; --slatebg:#f1f5f9;
+  --blue-t:#2563eb; --bluebg:#dbeafe;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:14px;}
+.hidden{display:none !important;}
+button{font-family:inherit;cursor:pointer;}
+input,select,textarea{font-family:inherit;font-size:14px;}
+
+/* ---------- header ---------- */
+header{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 100%);color:#fff;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+.brand{display:flex;align-items:center;gap:12px;}
+.logo{width:42px;height:42px;border-radius:10px;background:linear-gradient(135deg,#3b82f6,#06b6d4);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.brand h1{font-size:17px;font-weight:700;line-height:1.2;}
+.brand .sub{font-size:12px;color:#93c5fd;margin-top:2px;}
+.head-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;}
+.pill.ontrack{background:#052e16;color:#4ade80;border:1px solid #166534;}
+.pill.atrisk{background:#431407;color:#fbbf24;border:1px solid #92400e;}
+.pill.behind{background:#450a0a;color:#f87171;border:1px solid #991b1b;}
+.pill.complete{background:#052e16;color:#4ade80;border:1px solid #166534;}
+.pill.syncok{background:#052e16;color:#4ade80;border:1px solid #166534;}
+.pill.syncerr{background:#450a0a;color:#f87171;border:1px solid #991b1b;}
+.pill.syncbusy{background:#1e3a8a;color:#93c5fd;border:1px solid #1e40af;}
+#cloud-chip{display:none;}
+.cloud-url-box{display:flex;gap:8px;align-items:center;}
+.cloud-url-box input{flex:1;}
+.steps{counter-reset:step;list-style:none;padding:0;margin:8px 0;}
+.steps li{counter-increment:step;padding:6px 0 6px 30px;position:relative;font-size:13px;border-bottom:1px dashed #f1f5f9;}
+.steps li::before{content:counter(step);position:absolute;left:0;top:6px;width:20px;height:20px;border-radius:50%;background:#dbeafe;color:#1d4ed8;font-weight:700;font-size:11.5px;display:flex;align-items:center;justify-content:center;}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;}
+
+/* ---------- preview banner ---------- */
+#preview-banner{background:#fef3c7;color:#78350f;border-bottom:1px solid #fde68a;padding:8px 24px;font-size:13px;display:flex;gap:8px;align-items:center;}
+#viewer-banner{display:none;background:#e0f2fe;color:#1e40af;border-bottom:1px solid #bae6fd;padding:8px 24px;font-size:13px;align-items:center;gap:8px;}
+body.viewer #viewer-banner{display:flex;}
+body.viewer .no-view{display:none !important;}
+#boot-overlay{position:fixed;inset:0;background:rgba(11,34,57,.94);color:#fff;z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
+#boot-overlay .spinner{width:40px;height:40px;border:4px solid rgba(96,165,250,.25);border-top-color:#60a5fa;border-radius:50%;animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+#boot-overlay .btxt{font-size:14px;font-weight:600;color:#bfdbfe;}
+#boot-overlay .bsub{font-size:12px;color:#93c5fd;}
+/* ---------- lock screen ---------- */
+#lock-overlay{position:fixed;inset:0;background:rgba(11,34,57,.94);z-index:210;display:flex;align-items:center;justify-content:center;padding:20px;}
+.lock-box{background:#fff;border-radius:16px;max-width:420px;width:100%;padding:26px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.4);}
+.lock-ico{font-size:40px;margin-bottom:8px;}
+.lock-box h2{font-size:17px;margin-bottom:6px;}
+.lock-box p{font-size:13px;color:var(--mut);margin-bottom:14px;}
+.lock-box input[type=password]{text-align:center;font-size:15px;padding:11px;margin-bottom:10px;}
+.lock-err{font-size:12.5px;color:var(--red);font-weight:700;min-height:16px;margin-bottom:8px;}
+.lock-rem{display:flex;align-items:center;gap:6px;justify-content:center;font-size:12.5px;color:var(--mut);margin-top:12px;}
+/* ---------- remarks ---------- */
+.rem-item{display:flex;gap:9px;padding:8px 0;border-bottom:1px dashed var(--line);}
+.rem-item:last-child{border-bottom:none;}
+.rem-av{width:26px;height:26px;border-radius:50%;background:#e0e7ff;color:#4338ca;font-size:10.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;}
+.rem-head{font-size:12px;}
+.rem-head .muted{font-size:11px;}
+.rem-text{font-size:13px;margin-top:2px;color:var(--ink);}
+.remark-add{display:flex;gap:6px;margin-top:8px;align-items:center;}
+.remark-add input[type=text]{flex:1;min-width:0;}
+.rem-badge{display:inline-block;font-size:10.5px;font-weight:700;color:#7c3aed;background:#ede9fe;border-radius:99px;padding:1px 7px;margin-left:6px;vertical-align:middle;}
+.rem-head{position:relative;}
+.rem-del{background:none;border:none;font-size:12px;color:#94a3b8;cursor:pointer;padding:0 2px;float:right;line-height:1;}
+.rem-del:hover{color:#dc2626;}
+#task-remarks-list,#mom-remarks-list{max-height:160px;overflow-y:auto;border:1px solid var(--line);border-radius:10px;padding:6px 10px;background:#fafbfc;}
+.task-title{cursor:pointer;}
+.mom-card h3{cursor:pointer;}
+/* ---------- weekly report ---------- */
+.week-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;}
+.toolbar label{font-size:12px;font-weight:700;color:var(--mut);display:flex;align-items:center;gap:6px;}
+.toolbar label input{width:140px;}
+
+/* ---------- tabs ---------- */
+nav{background:#fff;border-bottom:1px solid var(--line);padding:0 24px;display:flex;gap:4px;overflow-x:auto;}
+nav button{background:none;border:none;padding:13px 16px;font-size:14px;font-weight:600;color:var(--mut);border-bottom:3px solid transparent;white-space:nowrap;}
+nav button.active{color:var(--blue);border-bottom-color:var(--blue);}
+nav button:hover{color:var(--ink);}
+
+main{padding:22px 24px 60px;max-width:1280px;margin:0 auto;}
+
+/* ---------- cards & grids ---------- */
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:0 1px 2px rgba(15,23,42,.05);}
+.card h3{font-size:14px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.section-title{font-size:15px;font-weight:700;margin:26px 0 12px;display:flex;align-items:center;gap:8px;}
+.section-title::before{content:"";width:4px;height:16px;background:var(--blue);border-radius:2px;}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;}
+.stat .num{font-size:26px;font-weight:800;line-height:1.1;}
+.stat .lbl{font-size:12px;color:var(--mut);margin-top:3px;font-weight:600;}
+.stat .sub{font-size:11px;color:var(--mut);margin-top:4px;}
+.dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;}
+@media(max-width:900px){.dash-grid{grid-template-columns:1fr;}}
+.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.bar-row .lbl{width:110px;font-size:12.5px;font-weight:600;color:var(--mut);flex-shrink:0;display:flex;justify-content:space-between;gap:6px;}
+.bar-track{flex:1;height:10px;background:#eef2f7;border-radius:99px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:99px;}
+.bigbar{height:14px;background:#eef2f7;border-radius:99px;overflow:hidden;position:relative;}
+.bigbar .fill{height:100%;background:linear-gradient(90deg,#3b82f6,#06b6d4);border-radius:99px;transition:width .4s;}
+.todo-list{list-style:none;}
+.todo-list li{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px dashed var(--line);font-size:13px;}
+.todo-list li:last-child{border-bottom:none;}
+.todo-list .code{font-weight:700;color:var(--blue);font-size:12px;background:var(--bluebg);padding:2px 7px;border-radius:6px;flex-shrink:0;}
+.todo-list .due{margin-left:auto;font-size:12px;font-weight:700;white-space:nowrap;}
+.due.over{color:var(--red);}
+.due.soon{color:var(--amber);}
+.due.ok{color:var(--green);}
+.muted{color:var(--mut);font-size:12.5px;}
+
+/* ---------- gantt ---------- */
+.gantt{overflow-x:auto;}
+.gantt-head,.gantt-row{display:grid;grid-template-columns:230px 1fr;gap:10px;align-items:center;}
+.gantt-head{font-size:11px;color:var(--mut);font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding-bottom:6px;border-bottom:1px solid var(--line);}
+.gantt-body{position:relative;}
+.gantt-row{border-bottom:1px dashed var(--line);padding:6px 0;}
+.gantt-row .t{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.gantt-row .t .c{color:var(--mut);font-weight:700;margin-right:5px;}
+.gantt-chart{position:relative;height:42px;}
+.gantt-chart .gridline{position:absolute;top:0;bottom:0;width:1px;background:#eef2f7;}
+.gantt-chart .tickline{position:absolute;top:0;bottom:0;width:1px;background:#e2e8f0;}
+.gantt-chart .todayline{position:absolute;top:-4px;bottom:-4px;width:2px;background:#ef4444;z-index:2;}
+.gbar{position:absolute;height:18px;top:15px;border-radius:6px;font-size:10.5px;color:#fff;font-weight:700;display:flex;align-items:center;padding:0 6px;overflow:hidden;white-space:nowrap;z-index:1;cursor:pointer;}
+.gbar .pc{opacity:.9;margin-left:auto;}
+.gantt-axis-row{display:grid;grid-template-columns:230px 1fr;gap:10px;border-bottom:1px solid var(--line);padding-bottom:5px;margin-bottom:2px;}
+.gantt-axis{position:relative;height:16px;}
+.gtick{position:absolute;top:0;font-size:9.5px;color:#64748b;font-weight:600;white-space:nowrap;transform:translateX(-50%);}
+.gtick.first{transform:none;left:0;}
+.gtick.last{transform:translateX(-100%);}
+.glabel{position:absolute;top:0;font-size:9.5px;color:#334155;font-weight:700;white-space:nowrap;transform:translateX(-50%);pointer-events:none;z-index:3;}
+.glabel.first{transform:none;left:0;}
+.glabel.last{transform:translateX(-100%);}
+
+/* ---------- toolbar ---------- */
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
+.toolbar input[type=search]{flex:1;min-width:180px;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;}
+.toolbar select{padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:13px;}
+.view-toggle{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff;}
+.view-toggle button{padding:9px 14px;border:none;background:#fff;font-size:13px;font-weight:600;color:var(--mut);}
+.view-toggle button.active{background:var(--blue);color:#fff;}
+
+/* ---------- table ---------- */
+.table-wrap{background:#fff;border:1px solid var(--line);border-radius:14px;overflow-x:auto;}
+table{width:100%;border-collapse:collapse;min-width:960px;}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--mut);text-align:left;padding:12px 12px;border-bottom:1px solid var(--line);background:#f8fafc;white-space:nowrap;}
+td{padding:10px 12px;border-bottom:1px solid #f1f5f9;vertical-align:middle;font-size:13px;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:#f8fafc;}
+td .task-title{font-weight:600;}
+td .task-desc{font-size:12px;color:var(--mut);max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.badge{display:inline-block;padding:3px 10px;border-radius:99px;font-size:11.5px;font-weight:700;white-space:nowrap;}
+.avatar{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;}
+.av{width:24px;height:24px;border-radius:50%;background:var(--blue);color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
+.mini-prog{width:64px;height:6px;background:#eef2f7;border-radius:99px;overflow:hidden;display:inline-block;vertical-align:middle;margin-right:6px;}
+.mini-prog i{display:block;height:100%;background:var(--blue);border-radius:99px;}
+.row-actions button{background:none;border:1px solid var(--line);border-radius:8px;padding:4px 8px;font-size:12px;color:var(--mut);margin-right:4px;}
+.row-actions button:hover{border-color:var(--blue);color:var(--blue);}
+.row-actions button.del:hover{border-color:var(--red);color:var(--red);}
+td .overdue-flag{color:var(--red);font-size:11px;font-weight:700;}
+
+/* ---------- kanban ---------- */
+.kanban{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;align-items:start;}
+@media(max-width:1000px){.kanban{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:600px){.kanban{grid-template-columns:1fr;}}
+.kcol{background:#eef2f7;border-radius:14px;padding:12px;border:1px solid var(--line);}
+.kcol h4{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--mut);display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.kcol h4 .cnt{background:#fff;border:1px solid var(--line);border-radius:99px;padding:1px 8px;font-size:11px;}
+.kcard{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;box-shadow:0 1px 2px rgba(15,23,42,.05);}
+.kcard .kt{font-weight:700;font-size:13px;margin:6px 0 2px;}
+.kcard .kd{font-size:12px;color:var(--mut);display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap;}
+.kcard .kfoot{margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.kcard select{padding:5px 6px;border:1px solid var(--line);border-radius:8px;font-size:12px;background:#fff;}
+.kprio{width:9px;height:9px;border-radius:50%;display:inline-block;}
+
+/* ---------- buttons ---------- */
+.btn{display:inline-flex;align-items:center;gap:7px;background:var(--blue);color:#fff;border:none;border-radius:10px;padding:9px 16px;font-size:13.5px;font-weight:700;transition:background .15s;}
+.btn:hover{background:var(--blue2);}
+.btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line);}
+.btn.ghost:hover{border-color:var(--blue);color:var(--blue);}
+.btn.danger{background:var(--redbg);color:var(--red);border:1px solid #fecaca;}
+.btn.danger:hover{background:#fecaca;}
+.btn.small{padding:6px 12px;font-size:12.5px;border-radius:8px;}
+.btn svg{flex-shrink:0;}
+
+/* ---------- modal ---------- */
+.overlay{position:fixed;inset:0;background:rgba(11,34,57,.55);display:flex;align-items:flex-start;justify-content:center;padding:30px 16px;z-index:50;overflow-y:auto;}
+.modal{background:#fff;border-radius:16px;width:100%;max-width:640px;padding:22px;box-shadow:0 20px 50px rgba(0,0,0,.25);animation:pop .18s ease;}
+@keyframes pop{from{transform:translateY(10px);opacity:0;}to{transform:none;opacity:1;}}
+.modal h2{font-size:17px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;}
+.modal .x{background:none;border:none;font-size:20px;color:var(--mut);line-height:1;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.form-grid .full{grid-column:1/-1;}
+label{display:block;font-size:12px;font-weight:700;color:var(--mut);margin-bottom:5px;text-transform:uppercase;letter-spacing:.3px;}
+input[type=text],input[type=email],input[type=password],input[type=date],input[type=number],select,textarea{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);}
+textarea{resize:vertical;min-height:64px;}
+input:focus,select:focus,textarea:focus{outline:2px solid #bfdbfe;border-color:var(--blue);}
+.modal-foot{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;}
+.hint{font-size:12px;color:var(--mut);margin-top:4px;}
+
+/* ---------- MoM ---------- */
+.mom-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:14px;border-left:4px solid var(--blue);}
+.mom-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+.mom-head h3{font-size:15px;font-weight:800;}
+.mom-meta{font-size:12px;color:var(--mut);margin-top:3px;}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.chip{background:var(--slatebg);color:var(--slate);font-size:11.5px;font-weight:600;padding:3px 10px;border-radius:99px;}
+.mom-body{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;}
+@media(max-width:700px){.mom-body{grid-template-columns:1fr;}}
+.mom-body h5{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--mut);margin-bottom:6px;display:flex;align-items:center;gap:6px;}
+.mom-body ul{list-style:none;}
+.mom-body li{font-size:13px;padding:4px 0 4px 16px;position:relative;border-bottom:1px dashed #f1f5f9;}
+.mom-body li:last-child{border-bottom:none;}
+.mom-body li::before{content:"";position:absolute;left:2px;top:10px;width:6px;height:6px;border-radius:50%;background:var(--blue);}
+.act-owner{font-size:11px;font-weight:700;color:var(--blue);background:var(--bluebg);padding:1px 7px;border-radius:99px;margin-left:6px;}
+
+/* ---------- report ---------- */
+.report{max-width:900px;margin:0 auto;background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;}
+.report-head{background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;padding:26px 30px;}
+.report-head h2{font-size:22px;}
+.report-head .sub{color:#93c5fd;font-size:13px;margin-top:4px;}
+.report-body{padding:26px 30px;}
+.report h4{font-size:13px;text-transform:uppercase;letter-spacing:.5px;color:var(--mut);margin:22px 0 10px;}
+.report h4:first-child{margin-top:0;}
+.report table{min-width:0;}
+.report .foot{margin-top:26px;padding-top:14px;border-top:1px solid var(--line);font-size:11.5px;color:var(--mut);text-align:center;}
+
+/* ---------- toast ---------- */
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:11px 20px;border-radius:12px;font-size:13.5px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:99;opacity:0;transition:opacity .25s;pointer-events:none;max-width:90vw;text-align:center;}
+#toast.show{opacity:1;}
+
+/* ---------- print ---------- */
+@media print{
+  body{background:#fff;}
+  header,nav,main .toolbar,.no-print,#toast,#preview-banner{display:none !important;}
+  main{padding:0;max-width:none;}
+  .report{border:none;border-radius:0;box-shadow:none;}
+  .report-body{padding:10px 0;}
+  .card{box-shadow:none;border:1px solid #ddd;break-inside:avoid;}
+}
+</style>
+</head>
+<body>
+
+<div id="preview-banner" class="hidden">
+  <span>⚠️</span>
+  <span><b>Preview mode:</b> this chat preview blocks saving, so the Firebase link and your data reset on every reload — that's why it keeps "disconnecting" here. Open the tracker from your <b>deployed link (GitHub Pages)</b> or the downloaded file instead, and the connection is remembered automatically — no re-linking needed.</span>
+</div>
+<div id="viewer-banner">
+  <span>👁️</span>
+  <span><b>Live dashboard — read-only view.</b> This link is for stakeholders: you can watch the live status, but edits are disabled. Signed-in editor accounts use the team link to make changes.</span>
+</div>
+<div id="boot-overlay" class="hidden">
+  <div class="spinner"></div>
+  <div class="btxt">Loading live project data…</div>
+  <div class="bsub">Connecting to the shared cloud</div>
+</div>
+<div id="lock-overlay" class="hidden">
+  <div class="lock-box">
+    <div class="lock-ico">🔐</div>
+    <h2>Sign in to edit this project</h2>
+    <p>Live data is protected by Firebase Authentication. Sign in with an editor account to create or change tasks and meetings.</p>
+    <input type="email" id="lock-email" placeholder="Editor email" autocomplete="email" onkeydown="if(event.key==='Enter')tryUnlock()">
+    <input type="password" id="lock-pass" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')tryUnlock()">
+    <div class="lock-err" id="lock-err"></div>
+    <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+      <button class="btn" onclick="tryUnlock()">🔓 Sign in</button>
+      <button class="btn ghost" onclick="viewOnlyFallback()">👁️ View read-only instead</button>
+    </div>
+    <label class="lock-rem"><input type="checkbox" id="lock-remember" checked> Keep me signed in on this device</label>
+  </div>
+</div>
+
+<header>
+  <div class="brand">
+    <div class="logo">⚙️</div>
+    <div>
+      <h1 id="proj-name">AI Automation Factory — Project Tracker</h1>
+      <div class="sub" id="proj-sub">Daily task &amp; progress tracker · live for stakeholders</div>
+    </div>
+  </div>
+  <div class="head-right">
+    <span id="health-pill" class="pill ontrack"><span class="dot"></span><span id="health-txt">On Track</span></span>
+    <span id="cloud-chip" class="pill" title=""><span class="dot"></span><span id="cloud-chip-txt">☁️ Synced</span></span>
+    <button class="btn no-view" id="share-live-btn" style="display:none" onclick="copyShareLink(false)" title="Copy the one-link live share">📤 Share live link</button>
+    <button class="btn ghost no-view" onclick="openSettings()">⚙️ Settings</button>
+    <button class="btn no-view" onclick="openTaskModal()">+ New Task</button>
+    <button class="btn no-view" onclick="openMomModal()">+ New MoM</button>
+  </div>
+</header>
+
+<nav>
+  <button class="active" data-tab="dashboard" onclick="switchTab('dashboard')">📊 Dashboard</button>
+  <button data-tab="tasks" onclick="switchTab('tasks')">✅ Tasks</button>
+  <button data-tab="mom" onclick="switchTab('mom')">📝 Minutes (MoM)</button>
+  <button data-tab="report" onclick="switchTab('report')">📤 Share / Report</button>
+  <button data-tab="weekly" onclick="switchTab('weekly')">📈 Weekly Report</button>
+</nav>
+
+<main>
+
+  <!-- ================= DASHBOARD ================= -->
+  <section id="view-dashboard">
+    <div class="stat-grid">
+      <div class="stat"><div class="num" id="st-total">0</div><div class="lbl">Total Tasks</div><div class="sub" id="st-total-sub"></div></div>
+      <div class="stat"><div class="num" style="color:var(--amber)" id="st-ip">0</div><div class="lbl">In Progress</div><div class="sub">active right now</div></div>
+      <div class="stat"><div class="num" style="color:var(--green)" id="st-done">0</div><div class="lbl">Completed</div><div class="sub" id="st-done-sub"></div></div>
+      <div class="stat"><div class="num" style="color:var(--red)" id="st-over">0</div><div class="lbl">Overdue</div><div class="sub">past target date</div></div>
+      <div class="stat"><div class="num" style="color:var(--red)" id="st-block">0</div><div class="lbl">Blocked</div><div class="sub">needs attention</div></div>
+    </div>
+
+    <div class="card" style="margin-top:14px;">
+      <h3>Overall Project Progress <span class="muted" id="overall-pct">0%</span></h3>
+      <div class="bigbar"><div class="fill" id="overall-bar" style="width:0%"></div></div>
+      <div class="muted" id="health-note" style="margin-top:8px;"></div>
+    </div>
+
+    <div class="dash-grid">
+      <div class="card">
+        <h3>Status Distribution</h3>
+        <div id="status-bars"></div>
+      </div>
+      <div class="card">
+        <h3>Priority Mix <span class="muted" style="font-weight:400">(open tasks)</span></h3>
+        <div id="prio-bars"></div>
+      </div>
+    </div>
+
+    <div class="dash-grid">
+      <div class="card">
+        <h3>⚠️ Overdue &amp; Due Soon</h3>
+        <ul class="todo-list" id="due-list"></ul>
+      </div>
+      <div class="card">
+        <h3>📝 Recent Meetings (MoM)</h3>
+        <ul class="todo-list" id="dash-moms"></ul>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:14px;">
+      <h3>🗓️ Project Timeline <span class="muted" style="font-weight:400">(tasks by date)</span></h3>
+      <div class="gantt" id="gantt"></div>
+    </div>
+  </section>
+
+  <!-- ================= TASKS ================= -->
+  <section id="view-tasks" class="hidden">
+    <div class="toolbar">
+      <input type="search" id="f-search" placeholder="🔍 Search task, assignee, code…" oninput="renderTasks()">
+      <select id="f-status" onchange="renderTasks()">
+        <option value="">All Status</option>
+        <option value="not-started">Not Started</option>
+        <option value="in-progress">In Progress</option>
+        <option value="blocked">Blocked</option>
+        <option value="done">Done</option>
+      </select>
+      <select id="f-prio" onchange="renderTasks()">
+        <option value="">All Priorities</option>
+        <option value="high">High</option>
+        <option value="medium">Medium</option>
+        <option value="low">Low</option>
+      </select>
+      <select id="f-assignee" onchange="renderTasks()"><option value="">All Assignees</option></select>
+      <select id="f-sort" onchange="renderTasks()">
+        <option value="prio">Sort: Priority</option>
+        <option value="target">Sort: Target date</option>
+        <option value="progress">Sort: Progress</option>
+        <option value="updated">Sort: Recently updated</option>
+      </select>
+      <div class="view-toggle">
+        <button id="vt-list" class="active" onclick="setTaskView('list')">List</button>
+        <button id="vt-kanban" onclick="setTaskView('kanban')">Board</button>
+      </div>
+    </div>
+    <div id="tasks-list"></div>
+    <div id="tasks-kanban" class="hidden"></div>
+  </section>
+
+  <!-- ================= MoM ================= -->
+  <section id="view-mom" class="hidden">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+      <p class="muted" style="font-size:13px">Minutes of every discussion — what was discussed, decisions taken, and action items with owners.</p>
+      <button class="btn small no-view" onclick="openMomModal()">+ New MoM</button>
+    </div>
+    <div id="mom-list"></div>
+  </section>
+
+  <!-- ================= REPORT ================= -->
+  <section id="view-report" class="hidden">
+    <div class="toolbar no-print">
+      <p class="muted" style="flex:1">This is the <b>stakeholder view</b> — a clean summary you can print to PDF and email, or share the file/link with shareholders.</p>
+      <button class="btn ghost" onclick="exportExcel()">⬇️ Export to Excel</button>
+      <button class="btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
+    </div>
+    <div id="report-area"></div>
+  </section>
+
+  <!-- ================= WEEKLY REPORT ================= -->
+  <section id="view-weekly" class="hidden">
+    <div class="toolbar no-print">
+      <label>From <input type="date" id="w-from" onchange="renderWeekly()"></label>
+      <label>To <input type="date" id="w-to" onchange="renderWeekly()"></label>
+      <button class="btn ghost small" onclick="setWeekRange(7)">Last 7 days</button>
+      <button class="btn ghost small" onclick="setWeekRange(0)">This week</button>
+      <button class="btn ghost small" onclick="setWeekRange(30)">Last 30 days</button>
+      <span style="flex:1"></span>
+      <button class="btn ghost" onclick="exportWeeklyExcel()">⬇️ Export weekly to Excel</button>
+      <button class="btn" onclick="window.print()">🖨️ Print weekly report</button>
+    </div>
+    <div id="weekly-area"></div>
+  </section>
+
+</main>
+
+<!-- ================= TASK MODAL ================= -->
+<div id="task-overlay" class="overlay hidden">
+  <div class="modal">
+    <h2 id="task-modal-title">New Task <button class="x" onclick="closeTaskModal()">✕</button></h2>
+    <div class="form-grid">
+      <div class="full"><label>Task Title *</label><input type="text" id="t-title" placeholder="e.g. Install defect detection camera on Line 2"></div>
+      <div class="full"><label>Description</label><textarea id="t-desc" placeholder="What needs to be done, scope, dependencies…"></textarea></div>
+      <div><label>Assignee *</label><input type="text" id="t-assignee" placeholder="e.g. Rahul Patel"></div>
+      <div><label>Area / Department</label><input type="text" id="t-area" placeholder="e.g. Production, IT, Quality"></div>
+      <div><label>Priority *</label>
+        <select id="t-prio">
+          <option value="high">🔴 High</option>
+          <option value="medium">🟠 Medium</option>
+          <option value="low">🔵 Low</option>
+        </select>
+      </div>
+      <div><label>Status *</label>
+        <select id="t-status">
+          <option value="not-started">Not Started</option>
+          <option value="in-progress">In Progress</option>
+          <option value="blocked">Blocked</option>
+          <option value="done">Done</option>
+        </select>
+      </div>
+      <div><label>Start Date *</label><input type="date" id="t-start"></div>
+      <div><label>Target (End) Date *</label><input type="date" id="t-target"></div>
+      <div><label>Actual End Date</label><input type="date" id="t-end"></div>
+      <div><label>Progress %</label><input type="number" id="t-progress" min="0" max="100" value="0"></div>
+      <div class="full"><label>Notes / Today's Update</label><textarea id="t-notes" placeholder="e.g. Camera installed, calibration pending. Waiting for IT to open firewall port."></textarea></div>
+      <div class="full">
+        <label>💬 Remarks <span class="muted" id="task-remark-count"></span></label>
+        <div id="task-remarks-list"></div>
+        <div class="remark-add">
+          <input type="text" id="task-remark-name" placeholder="Your name" style="width:150px">
+          <input type="text" id="task-remark-text" placeholder="Add a remark / comment…">
+          <button class="btn small" onclick="addTaskRemark()">Add</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn ghost" onclick="closeTaskModal()">Cancel</button>
+      <button class="btn" id="task-save-btn" onclick="saveTask()">💾 Save Task</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MoM MODAL ================= -->
+<div id="mom-overlay" class="overlay hidden">
+  <div class="modal">
+    <h2 id="mom-modal-title">New Meeting Minutes <button class="x" onclick="closeMomModal()">✕</button></h2>
+    <div class="form-grid">
+      <div><label>Meeting Date *</label><input type="date" id="m-date"></div>
+      <div><label>Meeting Title *</label><input type="text" id="m-title" placeholder="e.g. Weekly review — Week 34"></div>
+      <div class="full"><label>Attendees</label><input type="text" id="m-attendees" placeholder="Comma separated, e.g. Rahul Patel, Sneha Sharma, Vendor (CCTV)"></div>
+      <div class="full"><label>Key Points Discussed (one per line)</label><textarea id="m-points" placeholder="• Camera POE switch delivery delayed by 3 days&#10;• Model accuracy reached 97% on test set"></textarea></div>
+      <div class="full"><label>Decisions Taken (one per line)</label><textarea id="m-decisions" placeholder="• Approved purchase of 2 spare edge boxes&#10;• Go-live pushed to next Monday"></textarea></div>
+      <div class="full"><label>Action Items — format: task | owner (one per line)</label><textarea id="m-actions" placeholder="• Share firewall requirement with IT | Rahul Patel&#10;• Send updated quote to vendor | Sneha Sharma"></textarea></div>
+      <div class="full"><label>Next Meeting Date</label><input type="date" id="m-next"></div>
+      <div class="full">
+        <label>💬 Remarks <span class="muted" id="mom-remark-count"></span></label>
+        <div id="mom-remarks-list"></div>
+        <div class="remark-add">
+          <input type="text" id="mom-remark-name" placeholder="Your name" style="width:150px">
+          <input type="text" id="mom-remark-text" placeholder="Add a remark / comment…">
+          <button class="btn small" onclick="addMomRemark()">Add</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn ghost" onclick="closeMomModal()">Cancel</button>
+      <button class="btn" id="mom-save-btn" onclick="saveMom()">💾 Save MoM</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= SETTINGS MODAL ================= -->
+<div id="settings-overlay" class="overlay hidden">
+  <div class="modal">
+    <h2>Settings &amp; Data <button class="x" onclick="closeSettings()">✕</button></h2>
+    <div class="form-grid">
+      <div class="full"><label>Project Name</label><input type="text" id="s-name" placeholder="AI Automation Factory"></div>
+      <div class="full"><label>Project Lead / Owner</label><input type="text" id="s-lead" placeholder="e.g. Rahul Patel"></div>
+    </div>
+    <h4 style="font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--mut);margin:18px 0 8px;">☁️ Cloud sync — share LIVE across browsers &amp; devices</h4>
+    <div id="cloud-connected" class="hidden">
+      <p class="hint">Connected ✅ Firebase now requires authentication. Stakeholders can use the read-only link; only signed-in editor accounts can write data.</p>
+      <div class="cloud-url-box">
+        <input type="text" id="cloud-url-display" readonly>
+      </div>
+      <div id="firebase-auth-panel" style="margin-top:12px;padding:12px;border:1px solid var(--line);border-radius:10px;background:#f8fafc;">
+        <p style="font-size:13px;font-weight:700;margin-bottom:8px;">🔐 Editor access</p>
+        <p class="hint" id="cloud-auth-status"></p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <input type="email" id="auth-email" placeholder="Editor email" autocomplete="email" style="flex:1;min-width:180px;">
+          <input type="password" id="auth-password" placeholder="Password" autocomplete="current-password" style="flex:1;min-width:150px;">
+          <button class="btn small" onclick="signInEditor('settings')">🔓 Sign in</button>
+          <button class="btn ghost small" onclick="signOutFirebase()">Sign out</button>
+        </div>
+        <p class="hint" style="margin-top:8px;">Anonymous sign-in is used only for read-only links. A password account is required before this browser can upload changes.</p>
+      </div>
+      <div id="editor-admin-panel" class="hidden" style="margin-top:10px;padding:10px;border:1px dashed #93c5fd;border-radius:10px;background:#eff6ff;">
+        <p style="font-size:12.5px;font-weight:700;">👥 Project owner controls</p>
+        <p class="hint">Your Firebase UID (send this to the owner if you are joining another project):</p>
+        <input type="text" id="my-editor-uid" readonly style="margin:4px 0 8px;">
+        <p class="hint">To add a teammate, have them sign in once, ask for their UID, then paste it below.</p>
+        <div class="cloud-url-box">
+          <input type="text" id="editor-uid" placeholder="Teammate Firebase UID">
+          <button class="btn small" onclick="addEditorUid()">Add editor</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+        <button class="btn small" onclick="copyShareLink(false)">📋 Copy live link (signed-in team)</button>
+        <button class="btn small" style="background:#0e7490" onclick="copyShareLink(true)">👁️ Copy read-only link (shareholders)</button>
+        <button class="btn ghost small" onclick="syncNow(false)">🔄 Sync now</button>
+        <button class="btn danger small" onclick="disconnectCloud()">❌ Disconnect cloud</button>
+      </div>
+      <p class="hint" id="cloud-share-hint"></p>
+      <p class="hint" id="cloud-last" style="margin-top:8px;"></p>
+    </div>
+    <div id="cloud-disconnected">
+      <p class="hint">Until you connect, changes are saved only in this browser. Firebase cloud sync is protected with Authentication — do not use Firebase Test mode.</p>
+      <p style="font-size:13px;font-weight:700;margin-top:10px;">Firebase setup (secure configuration):</p>
+      <ol class="steps">
+        <li>Open <button class="btn small" onclick="window.open('https://console.firebase.google.com','_blank')">Firebase console ↗</button> and sign in.</li>
+        <li>Create or open your Firebase project, then go to <b>Build → Realtime Database</b> → <b>Create Database</b>. Choose <b>Locked mode</b> if Firebase offers that choice.</li>
+        <li>Go to <b>Build → Authentication → Get started → Sign-in method</b>. Enable <b>Anonymous</b> and <b>Email/Password</b>.</li>
+        <li>Open <b>Realtime Database → Rules</b> and publish these rules (they allow reads for authenticated viewers, but block anonymous writes):<br><code style="display:block;margin-top:5px;padding:7px;background:#f1f5f9;border-radius:6px;font-size:11px;white-space:pre-wrap;">{
+  "rules": {
+    ".read": "auth != null",
+    ".write": "auth != null &amp;&amp; auth.token.firebase.sign_in_provider != 'anonymous' &amp;&amp; (
+      (!data.child('access').child('ownerUid').exists() &amp;&amp; newData.child('access').child('ownerUid').val() == auth.uid) ||
+      data.child('access').child('ownerUid').val() == auth.uid ||
+      data.child('access').child('editors').child(auth.uid).val() == true
+    )"
+  }
+}</code></li>
+        <li>Go to <b>Project settings → Your apps</b>, register a Web app if needed, and copy its <b>Web API key</b>. This key is public; the database rules protect your data.</li>
+      </ol>
+      <div class="cloud-url-box" style="margin-top:10px;">
+        <input type="text" id="firebase-url" placeholder="Paste Firebase database URL here…">
+      </div>
+      <div class="cloud-url-box" style="margin-top:8px;">
+        <input type="text" id="firebase-api-key" placeholder="Paste Firebase Web API key here…" autocomplete="off">
+        <button class="btn small" onclick="connectFirebase()">Connect securely</button>
+      </div>
+      <p class="hint">The URL should look like <code>https://your-project-default-rtdb.firebaseio.com</code>. The app adds <code>/tracker.json</code> automatically.</p>
+      <p style="font-size:13px;font-weight:700;margin-top:14px;">Option 2 — your own hosting (PHP): upload the included <b>sync.php</b> next to the tracker on your hosting, then paste its link below. Your server must enforce authentication itself.</p>
+      <div class="cloud-url-box">
+        <input type="text" id="custom-url" placeholder="https://yourdomain.com/sync.php">
+        <button class="btn small" onclick="connectCustom()">Connect my server</button>
+      </div>
+      <p style="font-size:13px;font-weight:700;margin-top:14px;">Option 3 — advanced: any JSON API link that supports GET + PUT. Use only a private/authenticated API.</p>
+      <div class="cloud-url-box">
+        <input type="text" id="custom-url2" placeholder="https://any-service.com/my-data.json">
+        <button class="btn small" onclick="connectCustom2()">Connect custom link</button>
+      </div>
+    </div>
+    <h4 style="font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--mut);margin:18px 0 8px;">Data management</h4>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn ghost small" onclick="exportBackup()">⬇️ Export backup (JSON)</button>
+      <button class="btn ghost small" onclick="exportExcel()">⬇️ Export to Excel (.xlsx)</button>
+      <button class="btn ghost small" onclick="document.getElementById('import-file').click()">⬆️ Import backup</button>
+      <input type="file" id="import-file" accept=".json" class="hidden" onchange="importBackup(event)">
+      <button class="btn ghost small" onclick="loadDemo()">🧪 Load demo data</button>
+      <button class="btn danger small" onclick="confirmClear()">🗑️ Clear all data</button>
+    </div>
+    <p class="hint" style="margin-top:12px;">Data is saved automatically in this browser (localStorage). Export a JSON backup weekly and keep it safe — you can restore it anytime, even on another computer.</p>
+    <div class="modal-foot">
+      <button class="btn ghost" onclick="closeSettings()">Cancel</button>
+      <button class="btn" onclick="saveSettings()">💾 Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= CONFIRM MODAL ================= -->
+<div id="confirm-overlay" class="overlay hidden">
+  <div class="modal" style="max-width:420px;">
+    <h2>Please confirm</h2>
+    <p id="confirm-msg" style="font-size:14px;color:var(--mut);"></p>
+    <div class="modal-foot">
+      <button class="btn ghost" onclick="closeConfirm()">Cancel</button>
+      <button class="btn danger" id="confirm-ok" onclick="runConfirm()">Yes, continue</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ================================================================
+   AI Automation Factory — Project Tracker
+   Single-file app: tasks, dates, priority, MoM, dashboard, report
+   Data auto-saved in browser localStorage (with in-memory fallback)
+   ================================================================ */
+(function(){
+"use strict";
+
+const LS_KEY = "aifactory_tracker_v1";
+let previewMode = false;
+let memory = null;
+
+/* ---------- safe storage (works even in sandboxed preview) ---------- */
+function sanitizeState(s){
+  const c = JSON.parse(JSON.stringify(s));
+  delete c.viewerMode; delete c.editLocked; delete c.booted; delete c.lastSyncedRev;
+  delete c.firebaseAuth; delete c.editPasswordHash;
+  if(c.cloud) c.cloud = {url:c.cloud.url||"", kind:c.cloud.kind||""};
+  return c;
+}
+function loadState(){
+  let raw = null;
+  try{ raw = localStorage.getItem(LS_KEY); }catch(e){}
+  if(!raw){ try{ raw = sessionStorage.getItem(LS_KEY); }catch(e){} }
+  if(raw){ try{ memory = JSON.parse(raw); return memory; }catch(e){} }
+  /* no usable storage at all -> memory-only (preview) mode */
+  try{ localStorage.setItem("__aif_test","1"); localStorage.removeItem("__aif_test"); }
+  catch(e){ previewMode = true; }
+  if(memory) return memory;
+  memory = { project:{name:"AI Automation Factory", lead:""}, tasks:[], moms:[], seeded:false };
+  return memory;
+}
+function saveState(){
+  let ok = false;
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(sanitizeState(memory))); ok = true; }catch(e){}
+  try{ sessionStorage.setItem(LS_KEY, JSON.stringify(sanitizeState(memory))); ok = true; }catch(e){}
+  if(!ok){ previewMode = true; }
+  if(previewMode) document.getElementById("preview-banner").classList.remove("hidden");
+}
+
+const state = loadState();
+
+/* ---------- constants ---------- */
+const STATUSES = {
+  "not-started": {label:"Not Started", color:"#64748b", bg:"#f1f5f9"},
+  "in-progress": {label:"In Progress", color:"#b45309", bg:"#fef3c7"},
+  "blocked":     {label:"Blocked",     color:"#b91c1c", bg:"#fee2e2"},
+  "done":        {label:"Done",        color:"#15803d", bg:"#dcfce7"}
+};
+const PRIOS = {
+  high:   {label:"High",   color:"#dc2626", bg:"#fee2e2"},
+  medium: {label:"Medium", color:"#d97706", bg:"#fef3c7"},
+  low:    {label:"Low",    color:"#2563eb", bg:"#dbeafe"}
+};
+const STATUS_ORDER = ["not-started","in-progress","blocked","done"];
+const PRIO_ORDER = ["high","medium","low"];
+
+/* ---------- utils ---------- */
+const $ = id => document.getElementById(id);
+const esc = s => String(s==null?"":s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const todayISO = () => { const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); };
+function fmtDate(iso){
+  if(!iso) return "—";
+  try{ const d=new Date(iso+"T00:00:00");
+    return d.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"}); }
+  catch(e){ return iso; }
+}
+function daysUntil(iso){
+  const t = new Date(iso+"T00:00:00"), n = new Date(); n.setHours(0,0,0,0);
+  return Math.round((t - n)/86400000);
+}
+function addDays(n){ const d=new Date(); d.setDate(d.getDate()+n); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function uid(p){ return p+"_"+Date.now()+"_"+Math.floor(Math.random()*1e6); }
+function initials(name){ return String(name||"?").trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase(); }
+function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),2600); }
+function viewerGuard(){
+  if(state.viewerMode){ toast("👁️ Read-only view — edits are disabled on share links."); return true; }
+  if(state.editLocked){ toast("🔐 Sign in with an authorized editor account to make changes."); return true; }
+  if(isFirebaseCloud() && !isAuthorizedEditor()){
+    showLock("Sign in with an authorized editor account to make changes.");
+    return true;
+  }
+  return false;
+}
+
+/* ---------- 🔐 Firebase Authentication ----------
+   The database is no longer accessed anonymously for writes. Anonymous
+   Firebase users can read the stakeholder view, while an authenticated
+   editor who is listed in the database access record can write. */
+const AUTH_SESSION_KEY = "aifactory_firebase_auth_v1";
+const AUTH_API_BASE = "https://identitytoolkit.googleapis.com/v1";
+const SECURE_TOKEN_URL = "https://securetoken.googleapis.com/v1/token";
+let firebaseAuth = null;
+let firebaseApiKey = "";
+let wantsEditMode = false;
+
+function isFirebaseCloud(){
+  const u = cloudId();
+  return !!u && ((state.cloud && state.cloud.kind === "firebase") || /firebaseio\.com|firebasedatabase\.app/i.test(u));
+}
+function getFirebaseApiKey(){
+  if(firebaseApiKey) return firebaseApiKey;
+  try{ firebaseApiKey = localStorage.getItem("aifactory_firebase_api_key") || ""; }catch(e){}
+  if(!firebaseApiKey){ try{ firebaseApiKey = sessionStorage.getItem("aifactory_firebase_api_key") || ""; }catch(e){} }
+  return firebaseApiKey;
+}
+function setFirebaseApiKey(key){
+  firebaseApiKey = String(key||"").trim();
+  if(firebaseApiKey){
+    try{ localStorage.setItem("aifactory_firebase_api_key", firebaseApiKey); }catch(e){}
+    try{ sessionStorage.setItem("aifactory_firebase_api_key", firebaseApiKey); }catch(e){}
+  }
+}
+function loadAuthSession(){
+  let raw = null;
+  try{ raw = localStorage.getItem(AUTH_SESSION_KEY); }catch(e){}
+  if(!raw){ try{ raw = sessionStorage.getItem(AUTH_SESSION_KEY); }catch(e){} }
+  if(raw){ try{ firebaseAuth = JSON.parse(raw); }catch(e){ firebaseAuth=null; } }
+}
+function saveAuthSession(remember){
+  const raw = firebaseAuth ? JSON.stringify(firebaseAuth) : "";
+  try{ localStorage.removeItem(AUTH_SESSION_KEY); sessionStorage.removeItem(AUTH_SESSION_KEY); }catch(e){}
+  try{ (remember ? localStorage : sessionStorage).setItem(AUTH_SESSION_KEY, raw); }catch(e){}
+}
+function clearAuthSession(){
+  firebaseAuth = null;
+  try{ localStorage.removeItem(AUTH_SESSION_KEY); sessionStorage.removeItem(AUTH_SESSION_KEY); }catch(e){}
+}
+function authErrorMessage(e){
+  const code = String(e && e.message || e);
+  const map = {
+    "EMAIL_NOT_FOUND":"Email or password is incorrect.",
+    "INVALID_PASSWORD":"Email or password is incorrect.",
+    "INVALID_LOGIN_CREDENTIALS":"Email or password is incorrect.",
+    "USER_DISABLED":"This Firebase user has been disabled.",
+    "TOO_MANY_ATTEMPTS_TRY_LATER":"Too many attempts. Try again later.",
+    "OPERATION_NOT_ALLOWED":"Enable Email/Password in Firebase Authentication.",
+    "API_KEY_INVALID":"The Firebase Web API key is invalid.",
+    "PROJECT_NOT_FOUND":"The Firebase project for this API key was not found."
+  };
+  return map[code] || code.replace(/^Firebase auth error: /,"Authentication failed: ");
+}
+async function firebaseAuthRequest(endpoint, body, form){
+  const key = getFirebaseApiKey();
+  if(!key) throw new Error("Paste the Firebase Web API key in Settings first.");
+  const opts = {method:"POST", headers:{}};
+  if(form){
+    opts.headers["Content-Type"] = "application/x-www-form-urlencoded";
+    opts.body = new URLSearchParams(body).toString();
+  }else{
+    opts.headers["Content-Type"] = "application/json";
+    opts.body = JSON.stringify(body||{});
+  }
+  const url = (endpoint.indexOf("http")===0 ? endpoint : AUTH_API_BASE+"/"+endpoint)+"?key="+encodeURIComponent(key);
+  const res = await fetch(url, opts);
+  const text = await res.text();
+  let data = null; try{ data = JSON.parse(text); }catch(e){}
+  if(!res.ok){ throw new Error((data && data.error && data.error.message) || ("HTTP "+res.status)); }
+  return data;
+}
+function sessionFromAuthResponse(d, isAnonymous){
+  return {
+    idToken:d.idToken, refreshToken:d.refreshToken, localId:d.localId,
+    email:d.email||"", isAnonymous:!!isAnonymous,
+    expiresAt:Date.now()+Math.max(60,parseInt(d.expiresIn||3600,10))*1000
+  };
+}
+async function refreshAuthSession(){
+  if(!firebaseAuth || !firebaseAuth.refreshToken) return null;
+  const d = await firebaseAuthRequest(SECURE_TOKEN_URL, {
+    grant_type:"refresh_token", refresh_token:firebaseAuth.refreshToken
+  }, true);
+  firebaseAuth = {
+    idToken:d.id_token, refreshToken:d.refresh_token||firebaseAuth.refreshToken,
+    localId:d.user_id||firebaseAuth.localId, email:firebaseAuth.email||"",
+    isAnonymous:!!firebaseAuth.isAnonymous,
+    expiresAt:Date.now()+Math.max(60,parseInt(d.expires_in||3600,10))*1000
+  };
+  saveAuthSession(true);
+  return firebaseAuth;
+}
+async function ensureFirebaseAuth(){
+  if(!isFirebaseCloud()) return null;
+  if(!getFirebaseApiKey()) throw new Error("Firebase Web API key is missing. Open Settings and add it.");
+  if(firebaseAuth && firebaseAuth.idToken && (firebaseAuth.expiresAt||0)>Date.now()+60000) return firebaseAuth;
+  if(firebaseAuth && firebaseAuth.refreshToken){
+    try{ return await refreshAuthSession(); }catch(e){ clearAuthSession(); }
+  }
+  /* Every Firebase viewer receives a short-lived anonymous read session. */
+  const d = await firebaseAuthRequest("accounts:signUp", {returnSecureToken:true});
+  firebaseAuth = sessionFromAuthResponse(d, true);
+  saveAuthSession(true);
+  return firebaseAuth;
+}
+function isAuthorizedEditor(){
+  if(!isFirebaseCloud()) return true;
+  if(!firebaseAuth || firebaseAuth.isAnonymous) return false;
+  const access = state.access || {};
+  const owner = access.ownerUid || "";
+  /* An empty owner is the one-time bootstrap state. The first signed-in
+     editor is written as ownerUid in the same protected write. */
+  if(!owner) return true;
+  return owner===firebaseAuth.localId || !!(access.editors && access.editors[firebaseAuth.localId]);
+}
+function ensureAccess(){
+  if(!state.access || typeof state.access!=="object") state.access={ownerUid:"",editors:{}};
+  if(!state.access.editors || typeof state.access.editors!=="object") state.access.editors={};
+}
+function ensureCurrentEditorIsOwnerIfNeeded(){
+  if(!isFirebaseCloud() || !firebaseAuth || firebaseAuth.isAnonymous) return false;
+  ensureAccess();
+  if(!state.access.ownerUid){
+    state.access.ownerUid=firebaseAuth.localId;
+    state.access.editors[firebaseAuth.localId]=true;
+    return true;
+  }
+  return false;
+}
+function renderAuthPanel(){
+  const panel=$("firebase-auth-panel");
+  if(!panel) return;
+  panel.classList.toggle("hidden", !isFirebaseCloud());
+  const status=$("cloud-auth-status");
+  const admin=$("editor-admin-panel");
+  if(!isFirebaseCloud()){ if(admin) admin.classList.add("hidden"); return; }
+  if(status){
+    if(firebaseAuth && !firebaseAuth.isAnonymous){
+      status.innerHTML = "Signed in as <b>"+esc(firebaseAuth.email||firebaseAuth.localId||"editor")+"</b>"+(isAuthorizedEditor()?" ✅ editor access":" ⚠️ read-only — owner must add UID <code>"+esc(firebaseAuth.localId||"")+"</code>");
+    }else{
+      status.textContent = "Not signed in as an editor. Read-only links use anonymous access.";
+    }
+  }
+  if(admin){
+    const owner = state.access && state.access.ownerUid;
+    const show = !!(firebaseAuth && !firebaseAuth.isAnonymous && owner===firebaseAuth.localId);
+    admin.classList.toggle("hidden", !show);
+    if(show){
+      const uidEl=$("my-editor-uid"); if(uidEl) uidEl.value=firebaseAuth.localId||"";
+    }
+  }
+}
+function showLock(msg){
+  state.editLocked = true;
+  $("lock-err").textContent = msg || "";
+  $("boot-overlay").classList.add("hidden");
+  $("lock-overlay").classList.remove("hidden");
+  const email=$("lock-email");
+  if(email && firebaseAuth && firebaseAuth.email) email.value=firebaseAuth.email;
+  $("lock-pass").value = "";
+  setTimeout(()=>{ try{ (email && !email.value ? email : $("lock-pass")).focus(); }catch(e){} }, 60);
+}
+function hideLock(){
+  state.editLocked = false;
+  $("lock-overlay").classList.add("hidden");
+}
+async function signInEditor(source){
+  source=source||"settings";
+  const emailEl=$(source==="lock"?"lock-email":"auth-email");
+  const passEl=$(source==="lock"?"lock-pass":"auth-password");
+  const errEl=$(source==="lock"?"lock-err":"cloud-auth-status");
+  const email=(emailEl && emailEl.value||"").trim();
+  const password=(passEl && passEl.value||"");
+  if(!email || !password){ if(errEl) errEl.textContent="Enter the editor email and password."; return; }
+  if(!getFirebaseApiKey()){ if(errEl) errEl.textContent="Add the Firebase Web API key in Settings first."; return; }
+  try{
+    if(errEl) errEl.textContent="Signing in…";
+    const d=await firebaseAuthRequest("accounts:signInWithPassword",{email,password,returnSecureToken:true});
+    firebaseAuth=sessionFromAuthResponse(d,false);
+    saveAuthSession(source==="lock" ? $("lock-remember").checked : true);
+    ensureAccess();
+    const claimed=ensureCurrentEditorIsOwnerIfNeeded();
+    if(!isAuthorizedEditor()){
+      if(errEl) errEl.innerHTML="Signed in, but this account is not authorized for this project. Send this Firebase UID to the project owner: <code>"+esc(firebaseAuth.localId||"")+"</code>";
+      renderAuthPanel();
+      return;
+    }
+    if(claimed){ state.pending=true; state.rev=(state.rev||0)+1; persistSilent(); }
+    hideLock();
+    wantsEditMode=true;
+    renderAuthPanel(); renderAll();
+    await syncNow(false);
+    toast("🔓 Signed in — editing is enabled.");
+  }catch(e){
+    if(errEl) errEl.textContent=authErrorMessage(e);
+  }
+}
+function tryUnlock(){ signInEditor("lock"); }
+function signOutFirebase(){
+  clearAuthSession();
+  state.editLocked=false;
+  if(isFirebaseCloud() && !state.viewerMode) showLock("Signed out. Sign in again to edit.");
+  renderAuthPanel();
+  toast("Signed out. The database remains protected.");
+}
+function viewOnlyFallback(){
+  state.viewerMode = true; state.editLocked = false; wantsEditMode=false;
+  document.body.classList.add("viewer");
+  $("lock-overlay").classList.add("hidden");
+  persistSilent();
+  renderAll();
+  toast("👁️ Continuing in read-only mode.");
+}
+function evaluateLock(){
+  if(state.viewerMode || !wantsEditMode || !isFirebaseCloud()) return;
+  if(!isAuthorizedEditor()) showLock("Sign in with an authorized editor account to make changes.");
+}
+function addEditorUid(){
+  if(viewerGuard()) return;
+  if(!firebaseAuth || firebaseAuth.isAnonymous || !state.access || state.access.ownerUid!==firebaseAuth.localId){
+    toast("Only the project owner can add editors."); return;
+  }
+  const input=$("editor-uid"), uidValue=(input && input.value||"").trim();
+  if(!uidValue){ toast("Paste the team member's Firebase UID first."); return; }
+  ensureAccess(); state.access.editors[uidValue]=true;
+  persist(); renderAuthPanel();
+  syncNow(false);
+  if(input) input.value="";
+  toast("✅ Editor added. They can now sign in and edit.");
+}
+/* ---------- 💬 remarks ---------- */
+function remarkList(type, parentId){
+  return (state.remarks||[]).filter(r=>r.type===type && r.parentId===parentId && !r.deleted);
+}
+function renderRemarks(container, list){
+  const rs = [...list].sort((a,b)=>a.createdAt-b.createdAt);
+  container.innerHTML = rs.length ? rs.map(r=>{
+    const d = new Date(r.createdAt);
+    const when = d.toLocaleDateString("en-GB",{day:"2-digit",month:"short"})+" "+d.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
+    return '<div class="rem-item"><div class="rem-av">'+initials(r.author)+'</div>'+
+      '<div class="rem-body" style="flex:1"><div class="rem-head"><b>'+esc(r.author)+'</b> <span class="muted">'+when+'</span>'+
+      (!state.viewerMode ? '<button class="rem-del" onclick="deleteRemark(\''+r.id+'\')" title="Delete this remark">🗑️</button>' : '')+
+      '</div><div class="rem-text">'+esc(r.text)+'</div></div></div>';
+  }).join("") : '<p class="muted" style="padding:6px 0">No remarks yet.</p>';
+}
+function deleteRemark(id){
+  if(viewerGuard()) return;
+  const r = (state.remarks||[]).find(x=>x.id===id && !x.deleted);
+  if(!r) return;
+  openConfirm("Delete this remark by <b>"+esc(r.author)+"</b>? It will be removed for everyone (synced to cloud).", ()=>{
+    r.deleted = true;
+    r.updatedAt = Date.now();
+    pushState("🗑️ Remark deleted & synced.");
+  });
+}
+function remarkAuthorPrefill(){
+  try{ return localStorage.getItem("aifactory_remark_author") || ""; }catch(e){ return ""; }
+}
+function saveRemarkAuthor(name){
+  try{ localStorage.setItem("aifactory_remark_author", name); }catch(e){}
+}
+async function pushState(msg){
+  if(viewerGuard()) return;
+  const url = cloudId();
+  if(!url){ toast("⚠️ Connect the cloud first."); return; }
+  try{
+    if(isFirebaseCloud()){
+      await ensureFirebaseAuth();
+      if(!isAuthorizedEditor()) throw new Error("This Firebase account is not authorized to write this project.");
+    }
+    let remote = null;
+    try{ remote = await httpJson(url, "GET"); }catch(e){}
+    if(remote && typeof remote==="object"){ Object.assign(state, mergeStates(remote, state)); }
+    ensureCurrentEditorIsOwnerIfNeeded();
+    state.rev = (state.rev||0) + 1;
+    const payload = sanitizeState(state);
+    payload.rev = state.rev;
+    payload.updatedBy = (state.project.lead||"Team member").trim() || "Team member";
+    await httpJson(url, "PUT", payload);
+    state.lastSyncedRev = state.rev;
+    state.pending = false;
+    persistSilent();
+    renderAll();
+    refreshOpenModalRemarks();
+    toast(msg || "✅ Synced to cloud.");
+  }catch(e){
+    toast("❌ Could not sync — "+authErrorMessage(e));
+  }
+}
+async function pushRemark(type, parentId, text, author){
+  if(state.viewerMode){ toast("👁️ Read-only view — remarks cannot be added."); return; }
+  if(!text){ toast("⚠️ Type a remark first."); return; }
+  if(!Array.isArray(state.remarks)) state.remarks = [];
+  state.remarks.push({id:uid("r"), type:type, parentId:parentId, author:author||"Team member", text:text, createdAt:Date.now(), updatedAt:Date.now()});
+  await pushState("💬 Remark added & synced to cloud.");
+}
+function addTaskRemark(){
+  if(!editingTaskId){ toast("Open a task first."); return; }
+  const name = $("task-remark-name").value.trim() || (state.project.lead||"").trim() || "Team member";
+  const text = $("task-remark-text").value.trim();
+  if(!text){ toast("⚠️ Type a remark first."); return; }
+  saveRemarkAuthor(name);
+  $("task-remark-text").value = "";
+  pushRemark("task", editingTaskId, text, name);
+}
+function addMomRemark(){
+  if(!editingMomId){ toast("Open a meeting first."); return; }
+  const name = $("mom-remark-name").value.trim() || (state.project.lead||"").trim() || "Team member";
+  const text = $("mom-remark-text").value.trim();
+  if(!text){ toast("⚠️ Type a remark first."); return; }
+  saveRemarkAuthor(name);
+  $("mom-remark-text").value = "";
+  pushRemark("mom", editingMomId, text, name);
+}
+function refreshOpenModalRemarks(){
+  if(!$("task-overlay").classList.contains("hidden") && editingTaskId){
+    const rs = remarkList("task", editingTaskId);
+    renderRemarks($("task-remarks-list"), rs);
+    $("task-remark-count").textContent = "("+rs.length+")";
+  }
+  if(!$("mom-overlay").classList.contains("hidden") && editingMomId){
+    const rs = remarkList("mom", editingMomId);
+    renderRemarks($("mom-remarks-list"), rs);
+    $("mom-remark-count").textContent = "("+rs.length+")";
+  }
+}
+function nextTaskCode(){
+  let max=0; state.tasks.forEach(t=>{ const m=t.code.match(/AI-(\d+)/); if(m) max=Math.max(max,parseInt(m[1],10)); });
+  return "AI-" + String(max+1).padStart(2,"0");
+}
+function lines(x){
+  if(Array.isArray(x)) return x.map(v=>String(v).trim()).filter(Boolean);
+  return String(x||"").split("\n").map(v=>v.trim()).filter(Boolean);
+}
+function overdue(t){ return t.status!=="done" && t.target && daysUntil(t.target)<0; }
+function pctOf(t){
+  if(t.status==="done") return 100;
+  return Math.max(0, Math.min(100, parseInt(t.progress||0,10)));
+}
+function health(){
+  const over = state.tasks.some(overdue);
+  const blocked = state.tasks.some(t=>t.status==="blocked");
+  const allDone = state.tasks.length>0 && state.tasks.every(t=>t.status==="done");
+  if(allDone) return {txt:"Completed", cls:"complete"};
+  if(over)    return {txt:"Behind Schedule", cls:"behind"};
+  if(blocked) return {txt:"At Risk", cls:"atrisk"};
+  return {txt:"On Track", cls:"ontrack"};
+}
+
+/* ---------- seed demo data ---------- */
+function seedDemo(){
+  const T = addDays(0);
+  state.tasks = [
+    {id:uid("t"), code:"AI-01", title:"Factory floor network & IIoT assessment", desc:"Survey all 3 production lines for connectivity, PoE availability and network bandwidth for AI cameras.", assignee:"Vikram Joshi", area:"IT", priority:"high", status:"done", start:addDays(-40), target:addDays(-26), end:addDays(-28), progress:100, notes:"Complete. Report shared with management.", updatedAt:Date.now()-864e5*6},
+    {id:uid("t"), code:"AI-02", title:"Install HD cameras on Assembly Line 2", desc:"6x 4K PoE cameras over the PCB assembly line, positioned for defect capture.", assignee:"Rahul Patel", area:"Production", priority:"high", status:"done", start:addDays(-30), target:addDays(-12), end:addDays(-14), progress:100, notes:"Installed and calibrated. POE switch added.", updatedAt:Date.now()-864e5*5},
+    {id:uid("t"), code:"AI-03", title:"Train defect detection model (YOLO) on PCB samples", desc:"Collect 5,000 labeled samples; train and validate model to 95%+ accuracy on solder & component defects.", assignee:"Sneha Sharma", area:"Quality", priority:"high", status:"in-progress", start:addDays(-18), target:addDays(10), end:"", progress:65, notes:"Accuracy at 97% on test set. Final tuning with new solder defect samples in progress.", updatedAt:Date.now()-864e5*1},
+    {id:uid("t"), code:"AI-04", title:"Deploy edge GPU inference box at Line 2", desc:"Install industrial PC with GPU, run model in production, connect to camera stream with <200ms latency.", assignee:"Rahul Patel", area:"IT", priority:"medium", status:"not-started", start:addDays(5), target:addDays(19), end:"", progress:0, notes:"", updatedAt:Date.now()-864e5*2},
+    {id:uid("t"), code:"AI-05", title:"Integrate AI alerts with MES (SAP)", desc:"Push real-time defect alerts and stop events into MES via REST API. Needs firewall port + API access from IT.", assignee:"Anita Desai", area:"IT", priority:"high", status:"blocked", start:addDays(-10), target:addDays(-2), end:"", progress:30, notes:"BLOCKED: waiting for SAP IT team to open API access — follow up in weekly meeting.", updatedAt:Date.now()-864e5*2},
+    {id:uid("t"), code:"AI-06", title:"Operator dashboard & shift reports", desc:"Web dashboard for line supervisors showing defect rate, top defects and per-shift reports.", assignee:"Sneha Sharma", area:"Production", priority:"medium", status:"in-progress", start:addDays(-8), target:addDays(14), end:"", progress:30, notes:"UI mockup approved. Backend API development started.", updatedAt:Date.now()-864e5*1},
+    {id:uid("t"), code:"AI-07", title:"OEE & ROI dashboard for management", desc:"Monthly summary dashboard with OEE impact, defect reduction and ROI numbers for shareholders.", assignee:"Anita Desai", area:"Management", priority:"low", status:"not-started", start:addDays(12), target:addDays(40), end:"", progress:0, notes:"", updatedAt:Date.now()-864e5*4},
+    {id:uid("t"), code:"AI-08", title:"Safety, privacy & compliance review", desc:"Review camera placement vs worker privacy, data retention policy and factory safety standards sign-off.", assignee:"Vikram Joshi", area:"Quality", priority:"medium", status:"in-progress", start:addDays(-6), target:addDays(8), end:"", progress:50, notes:"Draft policy shared with HR for review.", updatedAt:Date.now()-864e5*3}
+  ];
+  state.moms = [
+    {id:uid("m"), date:addDays(-21), title:"Kickoff meeting — AI automation project", attendees:"Rahul Patel, Sneha Sharma, Vikram Joshi, Anita Desai, Plant Head",
+     points:["Project scope: defect detection on Assembly Line 2 as pilot","Budget approved for 6 cameras + 1 edge GPU box","Go-live target set: 6 weeks"],
+     decisions:["YOLO chosen as detection model","Line 2 selected as pilot line"],
+     actions:["Prepare network assessment plan | Vikram Joshi","Collect 500 PCB sample images per week | Sneha Sharma"],
+     next:addDays(-14), updatedAt:Date.now()-864e5*15},
+    {id:uid("m"), date:addDays(-2), title:"Weekly review — progress & blocker", attendees:"Rahul Patel, Sneha Sharma, Anita Desai, IT Admin",
+     points:["Model accuracy reached 97% on test set","MES integration blocked: SAP API access not yet granted","Operator dashboard UI mockup approved"],
+     decisions:["Go-live moved to next Monday after Line 2 shutdown window","Spare edge box approved for purchase"],
+     actions:["Escalate SAP API access to IT head | Anita Desai","Send purchase request for spare edge box | Rahul Patel"],
+     next:addDays(5), updatedAt:Date.now()-864e5*2}
+  ];
+  state.remarks = [
+    {id:uid("r"), type:"task", parentId:state.tasks[4].id, author:"Sneha Sharma", text:"Follow up with the SAP team again on Monday — they promised a date for API access.", createdAt:Date.now()-864e5*1, updatedAt:Date.now()-864e5*1},
+    {id:uid("r"), type:"task", parentId:state.tasks[2].id, author:"Rahul Patel", text:"Requested 200 extra solder defect samples from QC for the final tuning round.", createdAt:Date.now()-864e5*2, updatedAt:Date.now()-864e5*2},
+    {id:uid("r"), type:"mom", parentId:state.moms[1].id, author:"Anita Desai", text:"IT head confirmed escalation — API access should open this week.", createdAt:Date.now()-864e5*1, updatedAt:Date.now()-864e5*1}
+  ];
+  ensureAccess();
+  state.seeded = true;
+  persist();
+  renderAll();
+  toast("Demo data loaded. Explore, then clear it in Settings when you want to start fresh.");
+}
+
+/* ---------- tab switching ---------- */
+let currentTab = "dashboard";
+function switchTab(tab){
+  currentTab = tab;
+  document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("active", b.dataset.tab===tab));
+  ["dashboard","tasks","mom","report","weekly"].forEach(v=>$("view-"+v).classList.toggle("hidden", v!==tab));
+  if(tab==="report") renderReport();
+  if(tab==="weekly") renderWeekly();
+}
+
+/* ---------- render: dashboard ---------- */
+function renderDashboard(){
+  const tasks = state.tasks;
+  const total = tasks.length;
+  const done = tasks.filter(t=>t.status==="done").length;
+  const ip = tasks.filter(t=>t.status==="in-progress").length;
+  const blocked = tasks.filter(t=>t.status==="blocked").length;
+  const over = tasks.filter(overdue).length;
+  const avg = total ? Math.round(tasks.reduce((s,t)=>s+pctOf(t),0)/total) : 0;
+  $("st-total").textContent = total;
+  $("st-total-sub").textContent = total ? "since project start" : "add your first task";
+  $("st-ip").textContent = ip;
+  $("st-done").textContent = done;
+  $("st-done-sub").textContent = total ? Math.round(done/total*100)+"% of all tasks" : "";
+  $("st-over").textContent = over;
+  $("st-block").textContent = blocked;
+  $("overall-pct").textContent = avg+"%";
+  $("overall-bar").style.width = avg+"%";
+  const h = health();
+  const hp = $("health-pill");
+  hp.className = "pill "+h.cls;
+  $("health-txt").textContent = h.txt;
+
+  let note = "";
+  if(!total) note = "No tasks yet — click “+ New Task” to start tracking.";
+  else{
+    const parts = [];
+    if(over) parts.push("🔴 <b>"+over+" task(s) overdue</b> — review in today's stand-up.");
+    if(blocked) parts.push("🟠 <b>"+blocked+" task(s) blocked</b> — escalate with owners.");
+    if(done) parts.push("✅ <b>"+done+" of "+total+"</b> tasks completed ("+Math.round(done/total*100)+"%).");
+    if(ip) parts.push("🟡 <b>"+ip+"</b> in progress.");
+    if(!over && !blocked && total) parts.push("All open tasks are on schedule. 👍");
+    note = parts.join(" ");
+  }
+  $("health-note").innerHTML = note;
+
+  /* status bars */
+  let sb = "";
+  STATUS_ORDER.forEach(s=>{
+    const n = tasks.filter(t=>t.status===s).length;
+    const w = total ? n/total*100 : 0;
+    sb += '<div class="bar-row"><span class="lbl">'+STATUSES[s].label+' <b>'+n+'</b></span>'+
+          '<div class="bar-track"><div class="bar-fill" style="width:'+w+'%;background:'+STATUSES[s].color+'"></div></div></div>';
+  });
+  $("status-bars").innerHTML = sb || '<p class="muted">No tasks.</p>';
+
+  /* priority bars (open tasks) */
+  const open = tasks.filter(t=>t.status!=="done");
+  let pb = "";
+  PRIO_ORDER.forEach(p=>{
+    const n = open.filter(t=>t.priority===p).length;
+    const w = open.length ? n/open.length*100 : 0;
+    pb += '<div class="bar-row"><span class="lbl">'+PRIOS[p].label+' <b>'+n+'</b></span>'+
+          '<div class="bar-track"><div class="bar-fill" style="width:'+w+'%;background:'+PRIOS[p].color+'"></div></div></div>';
+  });
+  $("prio-bars").innerHTML = pb || '<p class="muted">No open tasks.</p>';
+
+  /* overdue & due soon */
+  const flagged = tasks.filter(t=>t.status!=="done" && t.target)
+    .sort((a,b)=>a.target<b.target?-1:1);
+  let dl = "";
+  flagged.forEach(t=>{
+    const d = daysUntil(t.target);
+    const cls = d<0 ? "over" : (d<=3 ? "soon" : "ok");
+    const txt = d<0 ? Math.abs(d)+"d overdue" : (d===0 ? "today" : "in "+d+"d");
+    dl += '<li><span class="code">'+t.code+'</span> <span style="font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(t.title)+'</span>'+
+          '<span class="due '+cls+'">'+txt+'</span></li>';
+  });
+  $("due-list").innerHTML = dl || '<li class="muted">Nothing overdue or due soon. 🎉</li>';
+
+  /* recent MoM */
+  const moms = [...state.moms].sort((a,b)=>(a.date<b.date?1:-1)).slice(0,3);
+  let ml = "";
+  moms.forEach(m=>{
+    ml += '<li><span class="code" style="background:#f1f5f9;color:#475569">📝</span> '+
+          '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><b>'+esc(m.title)+'</b><br><span class="muted">'+fmtDate(m.date)+' · '+esc(String(m.attendees||"").split(",")[0].trim())+' &amp; team</span></span></li>';
+  });
+  $("dash-moms").innerHTML = ml || '<li class="muted">No meetings logged yet.</li>';
+
+  renderGantt();
+}
+
+/* ---------- gantt ---------- */
+function fmtShortD(d){
+  try{ return d.toLocaleDateString("en-GB",{day:"numeric",month:"short"}); }catch(e){ return ""; }
+}
+function renderGantt(){
+  const dated = state.tasks.filter(t=>t.start && t.target);
+  if(!dated.length){ $("gantt").innerHTML = '<p class="muted">Add start & target dates to tasks to see the timeline here.</p>'; return; }
+  let min = new Date(dated[0].start), max = new Date(dated[0].target);
+  dated.forEach(t=>{
+    const s=new Date(t.start), e=new Date(t.target);
+    if(s<min)min=s; if(e>max)max=e;
+  });
+  min.setDate(min.getDate()-2); max.setDate(max.getDate()+2);
+  const span = (max-min)/86400000;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const sorted = [...dated].sort((a,b)=>a.start<b.start?-1:1);
+
+  /* pick a tick step so we get ~6-12 date labels on the axis */
+  let step = 7;
+  if(span > 200) step = 30;
+  else if(span > 110) step = 14;
+  else if(span <= 21) step = 2;
+  const ticks = [];
+  for(let x=new Date(min); x<=max; ){
+    ticks.push(new Date(x));
+    x.setDate(x.getDate()+step);
+  }
+  const tickHtml = ticks.map((tk,i)=>{
+    const x = ((tk-min)/86400000)/span*100;
+    const cls = i===0 ? " first" : (i===ticks.length-1 ? " last" : "");
+    return '<div class="gtick'+cls+'" style="left:'+x+'%">'+fmtShortD(tk)+'</div>';
+  }).join("");
+
+  let rows = "", grid = "";
+  /* gridlines: ticks (light) + week lines (lighter) */
+  const glines = {};
+  ticks.forEach(tk=>{
+    const x = ((tk-min)/86400000)/span*100;
+    glines[x.toFixed(2)] = '<div class="tickline" style="left:'+x+'%"></div>';
+  });
+  for(let d=new Date(min); d<=max; d.setDate(d.getDate()+1)){
+    if(d.getDay()===0){
+      const x = ((d-min)/86400000)/span*100;
+      if(!glines[x.toFixed(2)]) glines[x.toFixed(2)] = '<div class="gridline" style="left:'+x+'%"></div>';
+    }
+  }
+  grid = Object.values(glines).join("");
+  const tx = ((today-min)/86400000)/span*100;
+  if(tx>=0 && tx<=100) grid += '<div class="todayline" style="left:'+tx+'%" title="Today"></div>';
+
+  sorted.forEach(t=>{
+    const s=new Date(t.start), e=new Date(t.end || t.target);
+    const x1 = ((s-min)/86400000)/span*100, x2 = ((e-min)/86400000)/span*100;
+    const w = Math.max(2, x2-x1);
+    const col = t.status==="done" ? "#16a34a" : (t.status==="blocked" ? "#dc2626" : (t.priority==="high" ? "#2563eb" : "#64748b"));
+    const p = pctOf(t);
+    const isFirst = x1<=1, isLast = x2>=99;
+    const tip = t.code+" · "+esc(t.title)+"\nStart: "+fmtDate(t.start)+(t.end? "\nEnd: "+fmtDate(t.end):"")+"\nTarget: "+fmtDate(t.target)+" · "+p+"%";
+    rows += '<div class="gantt-row"><div class="t"><span class="c">'+t.code+'</span>'+esc(t.title)+'</div>'+
+            '<div class="gantt-chart">'+grid+
+            '<div class="glabel'+(isFirst?' first':'')+'" style="left:'+x1+'%" title="Start: '+fmtDate(t.start)+'">'+fmtShortD(s)+'</div>'+
+            '<div class="glabel'+(isLast?' last':'')+'" style="left:'+x2+'%" title="End: '+fmtDate(t.end||t.target)+'">'+fmtShortD(e)+'</div>'+
+            '<div class="gbar" style="left:'+x1+'%;width:'+w+'%;background:'+col+'" onclick="openTaskModal(\''+t.id+'\')" title="'+tip+'">'+p+'%</div>'+
+            '</div></div>';
+  });
+
+  $("gantt").innerHTML = '<div class="gantt-head"><div>Task</div><div>Timeline <span style="text-transform:none;font-weight:400">(red line = today · labels above bars = start &amp; end dates)</span></div></div>'+
+    '<div class="gantt-axis-row"><div></div><div class="gantt-axis">'+tickHtml+'</div></div>'+
+    '<div class="gantt-body">'+rows+'</div>';
+}
+
+/* ---------- render: tasks ---------- */
+let taskView = "list";
+function setTaskView(v){
+  taskView = v;
+  $("vt-list").classList.toggle("active", v==="list");
+  $("vt-kanban").classList.toggle("active", v==="kanban");
+  $("tasks-list").classList.toggle("hidden", v!=="list");
+  $("tasks-kanban").classList.toggle("hidden", v!=="kanban");
+  renderTasks();
+}
+function filteredTasks(){
+  const q = $("f-search").value.trim().toLowerCase();
+  const st = $("f-status").value, pr = $("f-prio").value, as = $("f-assignee").value;
+  const sort = $("f-sort").value;
+  let list = state.tasks.filter(t=>{
+    if(st && t.status!==st) return false;
+    if(pr && t.priority!==pr) return false;
+    if(as && t.assignee!==as) return false;
+    if(q){
+      const hay = (t.title+" "+t.desc+" "+t.assignee+" "+t.code+" "+t.area).toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  const prioRank = p => PRIO_ORDER.indexOf(p);
+  list.sort((a,b)=>{
+    if(sort==="prio"){
+      if(a.status==="done" && b.status!=="done") return 1;
+      if(b.status==="done" && a.status!=="done") return -1;
+      return prioRank(a.priority)-prioRank(b.priority) || (a.target||"9999").localeCompare(b.target||"9999");
+    }
+    if(sort==="target") return (a.target||"9999").localeCompare(b.target||"9999");
+    if(sort==="progress") return pctOf(b)-pctOf(a);
+    return (b.updatedAt||0)-(a.updatedAt||0);
+  });
+  return list;
+}
+function renderTasks(){
+  const list = filteredTasks();
+
+  /* populate assignee filter once */
+  const sel = $("f-assignee");
+  const cur = sel.value;
+  const names = [...new Set(state.tasks.map(t=>t.assignee).filter(Boolean))].sort();
+  sel.innerHTML = '<option value="">All Assignees</option>' + names.map(n=>'<option value="'+esc(n)+'">'+esc(n)+'</option>').join("");
+  sel.value = cur;
+
+  const rows = list.map(t=>{
+    const S = STATUSES[t.status], P = PRIOS[t.priority];
+    const p = pctOf(t);
+    const od = overdue(t);
+    const endShown = t.status==="done" ? (t.end||t.target) : "—";
+    return '<tr>'+
+      '<td><span class="badge" style="color:#2563eb;background:#dbeafe">'+t.code+'</span></td>'+
+      '<td><div class="task-title" onclick="openTaskModal(\''+t.id+'\')" title="Click to view / edit">'+esc(t.title)+
+      '<span class="rem-badge">💬 '+remarkList("task",t.id).length+'</span></div><div class="task-desc">'+esc(t.desc||"")+'</div></td>'+
+      '<td><span class="avatar"><span class="av">'+initials(t.assignee)+'</span>'+esc(t.assignee||"—")+'</span></td>'+
+      '<td><span class="muted">'+esc(t.area||"—")+'</span></td>'+
+      '<td><span class="badge" style="color:'+P.color+';background:'+P.bg+'">'+P.label+'</span></td>'+
+      '<td><span class="badge" style="color:'+S.color+';background:'+S.bg+'">'+S.label+'</span>'+(od?'<br><span class="overdue-flag">⚠ overdue</span>':'')+'</td>'+
+      '<td class="muted">'+fmtDate(t.start)+'</td>'+
+      '<td class="muted">'+fmtDate(t.target)+'</td>'+
+      '<td class="muted">'+fmtDate(endShown)+'</td>'+
+      '<td><span class="mini-prog"><i style="width:'+p+'%;background:'+(p===100?'#16a34a':'#2563eb')+'"></i></span>'+p+'%</td>'+
+      '<td class="row-actions">'+(state.viewerMode?'': '<button onclick="openTaskModal(\''+t.id+'\')">✏️ Edit</button><button class="del" onclick="deleteTask(\''+t.id+'\')">🗑️</button>')+'</td>'+
+    '</tr>';
+  }).join("");
+  $("tasks-list").innerHTML = '<div class="table-wrap"><table><thead><tr>'+
+    '<th>ID</th><th>Task</th><th>Assignee</th><th>Area</th><th>Priority</th><th>Status</th><th>Start</th><th>Target</th><th>Ended</th><th>Progress</th><th></th>'+
+    '</tr></thead><tbody>'+ (rows||'<tr><td colspan="11" style="text-align:center;padding:30px;color:#64748b">No tasks match your filters.</td></tr>') +'</tbody></table></div>';
+
+  /* kanban */
+  const cols = {};
+  STATUS_ORDER.forEach(s=>cols[s]=[]);
+  list.forEach(t=>{ if(cols[t.status]) cols[t.status].push(t); });
+  let kb = "";
+  STATUS_ORDER.forEach(s=>{
+    const cards = cols[s].map(t=>{
+      const P = PRIOS[t.priority];
+      const p = pctOf(t);
+      const od = overdue(t);
+      return '<div class="kcard">'+
+        '<div style="display:flex;align-items:center;gap:6px;"><span class="kprio" style="background:'+P.color+'" title="'+P.label+' priority"></span>'+
+        '<span class="badge" style="color:#2563eb;background:#dbeafe">'+t.code+'</span>'+
+        (od?'<span class="overdue-flag">⚠</span>':'')+'</div>'+
+        '<div class="kt">'+esc(t.title)+'</div>'+
+        '<div class="kd">👤 '+esc(t.assignee||"—")+' · 🗓️ '+fmtDate(t.target)+'</div>'+
+        '<div class="kd"><span class="mini-prog" style="width:100%"><i style="width:'+p+'%;background:'+(p===100?'#16a34a':'#2563eb')+'"></i></span>'+p+'%</div>'+
+        '<div class="kfoot">'+
+          '<select '+(state.viewerMode?'disabled title="Read-only view"':'')+' onchange="moveTask(\''+t.id+'\',this.value)">'+
+            STATUS_ORDER.map(o=>'<option value="'+o+'"'+(o===t.status?' selected':'')+'>'+STATUSES[o].label+'</option>').join("")+
+          '</select>'+
+          '<div class="row-actions">'+(state.viewerMode?'':'<button onclick="openTaskModal(\''+t.id+'\')">✏️</button>')+'</div>'+
+        '</div></div>';
+    }).join("");
+    kb += '<div class="kcol"><h4>'+STATUSES[s].label+' <span class="cnt">'+cols[s].length+'</span></h4>'+(cards||'<p class="muted" style="padding:8px 2px">Empty</p>')+'</div>';
+  });
+  $("tasks-kanban").innerHTML = '<div class="kanban">'+kb+'</div>';
+}
+
+/* ---------- render: MoM ---------- */
+function renderMom(){
+  const moms = [...state.moms].sort((a,b)=>(a.date<b.date?1:-1));
+  let html = "";
+  moms.forEach(m=>{
+    const points = lines(m.points);
+    const decisions = lines(m.decisions);
+    const actions = lines(m.actions);
+    const attendees = (m.attendees||"").split(",").map(x=>x.trim()).filter(Boolean);
+    html += '<div class="mom-card">'+
+      '<div class="mom-head"><div>'+
+        '<h3 onclick="openMomModal(\''+m.id+'\')" title="Click to view / edit">'+esc(m.title)+
+        '<span class="rem-badge">💬 '+remarkList("mom",m.id).length+'</span></h3>'+
+        '<div class="mom-meta">🗓️ '+fmtDate(m.date)+ (m.next?' · ➡️ Next meeting: '+fmtDate(m.next):'') +'</div>'+
+        '<div class="chips">'+attendees.map(a=>'<span class="chip">'+esc(a)+'</span>').join("")+'</div>'+
+      '</div>'+
+      '<div class="row-actions">'+(state.viewerMode?'':'<button onclick="openMomModal(\''+m.id+'\')">✏️ Edit</button><button class="del" onclick="deleteMom(\''+m.id+'\')">🗑️</button>')+'</div></div>'+
+      '<div class="mom-body">'+
+        '<div><h5>💬 Points Discussed</h5><ul>'+ (points.map(p=>'<li>'+esc(p)+'</li>').join("")||'<li class="muted">—</li>') +'</ul></div>'+
+        '<div><h5>✅ Decisions</h5><ul>'+ (decisions.map(d=>'<li>'+esc(d)+'</li>').join("")||'<li class="muted">—</li>') +'</ul></div>'+
+        '<div class="full" style="grid-column:1/-1"><h5>🎯 Action Items</h5><ul>'+ (actions.map(a=>{
+          const parts = a.split("|");
+          const txt = parts[0].replace(/^[-•*]\s*/,"").trim();
+          const owner = parts[1] ? parts[1].trim() : "";
+          return '<li>'+esc(txt)+(owner?'<span class="act-owner">👤 '+esc(owner)+'</span>':'')+'</li>';
+        }).join("")||'<li class="muted">—</li>') +'</ul></div>'+
+      '</div></div>';
+  });
+  $("mom-list").innerHTML = html || '<div class="card"><p class="muted" style="text-align:center;padding:20px;">No meetings logged yet. Click “+ New MoM” after your next discussion — it will appear here and in the stakeholder report.</p></div>';
+}
+
+/* ---------- render: report ---------- */
+function renderReport(){
+  const tasks = state.tasks;
+  const total = tasks.length;
+  const done = tasks.filter(t=>t.status==="done").length;
+  const ip = tasks.filter(t=>t.status==="in-progress").length;
+  const blocked = tasks.filter(t=>t.status==="blocked").length;
+  const over = tasks.filter(overdue).length;
+  const avg = total ? Math.round(tasks.reduce((s,t)=>s+pctOf(t),0)/total) : 0;
+  const h = health();
+  const gen = new Date().toLocaleString("en-GB",{day:"2-digit",month:"long",year:"numeric",hour:"2-digit",minute:"2-digit"});
+
+  const byStatus = STATUS_ORDER.map(s=>{ const n=tasks.filter(t=>t.status===s).length; return {label:STATUSES[s].label,color:STATUSES[s].color,n}; });
+
+  const sortedTasks = [...tasks].sort((a,b)=>PRIO_ORDER.indexOf(a.priority)-PRIO_ORDER.indexOf(b.priority) || (a.target||"9999").localeCompare(b.target||"9999"));
+  const rows = sortedTasks.map(t=>{
+    const S=STATUSES[t.status], P=PRIOS[t.priority];
+    const od = overdue(t);
+    return '<tr style="'+(od?'background:#fef2f2':(t.status==="blocked"?'background:#fff7ed':'') )+'">'+
+      '<td><b>'+t.code+'</b></td><td>'+esc(t.title)+'</td><td>'+esc(t.assignee||"—")+'</td>'+
+      '<td><span class="badge" style="color:'+P.color+';background:'+P.bg+'">'+P.label+'</span></td>'+
+      '<td><span class="badge" style="color:'+S.color+';background:'+S.bg+'">'+S.label+'</span>'+(od?' ⚠':'')+'</td>'+
+      '<td>'+fmtDate(t.start)+'</td><td>'+fmtDate(t.target)+'</td>'+
+      '<td>'+(t.status==="done"?fmtDate(t.end||t.target):"—")+'</td>'+
+      '<td><b>'+pctOf(t)+'%</b></td></tr>';
+  }).join("");
+
+  const moms = [...state.moms].sort((a,b)=>(a.date<b.date?1:-1));
+  const momHtml = moms.map(m=>{
+    const decisions=lines(m.decisions);
+    const actions=lines(m.actions);
+    return '<div style="border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;margin-bottom:10px;">'+
+      '<div style="font-weight:700;">'+esc(m.title)+' <span style="font-weight:400;color:#64748b;font-size:12px;">· '+fmtDate(m.date)+' · '+esc(m.attendees||"")+'</span></div>'+
+      (decisions.length?'<div style="margin-top:6px;font-size:13px;"><b>Decisions:</b> '+esc(decisions.join(" · "))+'</div>':'')+
+      (actions.length?'<div style="margin-top:4px;font-size:13px;"><b>Actions:</b> '+esc(actions.join(" · "))+'</div>':'')+
+    '</div>';
+  }).join("") || '<p class="muted">No meetings logged.</p>';
+
+  let summary = "Project status: <b>"+h.txt+"</b>.";
+  if(total){
+    summary += " "+done+" of "+total+" tasks completed ("+avg+"% overall). ";
+    if(ip) summary += ip+" task(s) in progress, ";
+    if(blocked) summary += blocked+" blocked, ";
+    if(over) summary += over+" overdue.";
+    else summary += " no overdue tasks.";
+  } else summary += " No tasks defined yet.";
+
+  $("report-area").innerHTML =
+  '<div class="report">'+
+    '<div class="report-head">'+
+      '<h2>'+esc(state.project.name||"AI Automation Factory")+' — Project Status Report</h2>'+
+      '<div class="sub">Generated '+gen+' · Project Lead: '+esc(state.project.lead||"—")+'</div>'+
+      '<div style="margin-top:12px;"><span class="pill '+h.cls+'"><span class="dot"></span>'+h.txt+'</span> '+
+      '<span class="pill" style="background:rgba(255,255,255,.1);color:#e2e8f0;border:1px solid rgba(255,255,255,.2)">Overall progress '+avg+'%</span></div>'+
+    '</div>'+
+    '<div class="report-body">'+
+      '<p style="font-size:14px;">'+summary+'</p>'+
+      '<h4>📊 At a glance</h4>'+
+      '<div class="stat-grid" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr));">'+
+        '<div class="stat"><div class="num">'+total+'</div><div class="lbl">Total</div></div>'+
+        '<div class="stat"><div class="num" style="color:#b45309">'+ip+'</div><div class="lbl">In Progress</div></div>'+
+        '<div class="stat"><div class="num" style="color:#15803d">'+done+'</div><div class="lbl">Completed</div></div>'+
+        '<div class="stat"><div class="num" style="color:#b91c1c">'+over+'</div><div class="lbl">Overdue</div></div>'+
+        '<div class="stat"><div class="num" style="color:#b91c1c">'+blocked+'</div><div class="lbl">Blocked</div></div>'+
+      '</div>'+
+      '<h4>Status breakdown</h4>'+
+      byStatus.map(s=>'<div class="bar-row"><span class="lbl">'+s.label+' <b>'+s.n+'</b></span><div class="bar-track"><div class="bar-fill" style="width:'+(total?s.n/total*100:0)+'%;background:'+s.color+'"></div></div></div>').join("")+
+      '<h4>✅ Task list</h4>'+
+      '<div class="table-wrap"><table style="min-width:0"><thead><tr><th>ID</th><th>Task</th><th>Assignee</th><th>Priority</th><th>Status</th><th>Start</th><th>Target</th><th>Ended</th><th>%</th></tr></thead>'+
+      '<tbody>'+rows+'</tbody></table></div>'+
+      '<h4>📝 Meeting minutes (MoM)</h4>'+momHtml+
+      '<div class="foot">Generated automatically from the AI Automation Factory Tracker · '+(state.project.name||"AI Automation Factory")+'</div>'+
+    '</div>'+
+  '</div>';
+}
+
+/* ---------- render all ---------- */
+function renderAll(){
+  document.body.classList.toggle("viewer", !!state.viewerMode);
+  renderAuthPanel();
+  const h = health();
+  const hp = $("health-pill");
+  hp.className = "pill "+h.cls;
+  $("health-txt").textContent = h.txt;
+  $("proj-name").textContent = state.project.name || "AI Automation Factory — Project Tracker";
+  $("proj-sub").textContent = (state.project.lead ? "Led by "+state.project.lead+" · " : "")+"Daily task & progress tracker · live for stakeholders";
+  renderDashboard();
+  renderTasks();
+  renderMom();
+}
+
+/* ---------- task modal ---------- */
+let editingTaskId = null;
+function openTaskModal(id){
+  if(state.editLocked && !state.viewerMode){ toast("🔒 Enter the edit password to make changes."); return; }
+  editingTaskId = id || null;
+  const t = id ? state.tasks.find(x=>x.id===id) : null;
+  const ro = state.viewerMode; /* viewer: open details read-only */
+  $("task-modal-title").textContent = t ? (ro ? "Task — "+t.code : "Edit Task — "+t.code) : "New Task";
+  $("t-title").value = t ? t.title : "";
+  $("t-desc").value = t ? (t.desc||"") : "";
+  $("t-assignee").value = t ? (t.assignee||"") : "";
+  $("t-area").value = t ? (t.area||"") : "";
+  $("t-prio").value = t ? t.priority : "medium";
+  $("t-status").value = t ? t.status : "not-started";
+  $("t-start").value = t ? (t.start||"") : todayISO();
+  $("t-target").value = t ? (t.target||"") : "";
+  $("t-end").value = t ? (t.end||"") : "";
+  $("t-progress").value = t ? pctOf(t) : 0;
+  $("t-notes").value = t ? (t.notes||"") : "";
+  /* read-only mode: disable every field, including remarks */
+  $("task-overlay").querySelectorAll("input,select,textarea").forEach(el=>{
+    el.disabled = ro;
+  });
+  $("task-save-btn").style.display = ro ? "none" : "inline-flex";
+  $("task-remark-name").value = remarkAuthorPrefill() || (state.project.lead||"").trim() || "";
+  $("task-remark-text").value = "";
+  const rs = remarkList("task", t?t.id:"");
+  renderRemarks($("task-remarks-list"), rs);
+  $("task-remark-count").textContent = "("+rs.length+")";
+  $("task-overlay").classList.remove("hidden");
+}
+function closeTaskModal(){ $("task-overlay").classList.add("hidden"); editingTaskId=null; }
+function saveTask(){
+  if(viewerGuard()) return;
+  const title = $("t-title").value.trim();
+  const assignee = $("t-assignee").value.trim();
+  const start = $("t-start").value, target = $("t-target").value;
+  if(!title){ toast("⚠️ Please enter a task title."); return; }
+  if(!assignee){ toast("⚠️ Please assign the task to someone."); return; }
+  if(!start || !target){ toast("⚠️ Start and target dates are required."); return; }
+  if(target < start){ toast("⚠️ Target date is before start date."); return; }
+  const data = {
+    title, desc:$("t-desc").value.trim(), assignee, area:$("t-area").value.trim(),
+    priority:$("t-prio").value, status:$("t-status").value,
+    start, target, end:$("t-end").value,
+    progress:Math.max(0,Math.min(100,parseInt($("t-progress").value||0,10))),
+    notes:$("t-notes").value.trim(), updatedAt:Date.now()
+  };
+  if(editingTaskId){
+    const t = state.tasks.find(x=>x.id===editingTaskId);
+    Object.assign(t,data);
+    toast("✅ Task "+t.code+" updated.");
+  }else{
+    state.tasks.push({id:uid("t"), code:nextTaskCode(), ...data});
+    toast("✅ Task created.");
+  }
+  persist(); closeTaskModal(); renderAll();
+}
+function moveTask(id,status){
+  if(viewerGuard()) return; const t=state.tasks.find(x=>x.id===id); if(t){ t.status=status; t.updatedAt=Date.now(); if(status==="done"){ t.progress=100; if(!t.end) t.end=todayISO(); } persist(); renderAll(); toast("Moved "+t.code+" → "+STATUSES[status].label); } }
+function deleteTask(id){
+  if(viewerGuard()) return;
+  const t=state.tasks.find(x=>x.id===id);
+  openConfirm("Delete task <b>"+esc(t.code)+" — "+esc(t.title)+"</b>? This cannot be undone.", ()=>{
+    state.tasks = state.tasks.filter(x=>x.id!==id);
+    persist(); renderAll(); toast("Task deleted.");
+  });
+}
+
+/* ---------- MoM modal ---------- */
+let editingMomId = null;
+function openMomModal(id){
+  if(state.editLocked && !state.viewerMode){ toast("🔒 Enter the edit password to make changes."); return; }
+  editingMomId = id || null;
+  const m = id ? state.moms.find(x=>x.id===id) : null;
+  const ro = state.viewerMode;
+  $("mom-modal-title").textContent = m ? (ro ? "Meeting Minutes" : "Edit Meeting Minutes") : "New Meeting Minutes";
+  $("m-date").value = m ? m.date : todayISO();
+  $("m-title").value = m ? (m.title||"") : "";
+  $("m-attendees").value = m ? (m.attendees||"") : "";
+  $("m-points").value = m ? (m.points||"") : "";
+  $("m-decisions").value = m ? (m.decisions||"") : "";
+  $("m-actions").value = m ? (m.actions||"") : "";
+  $("m-next").value = m ? (m.next||"") : "";
+  $("mom-overlay").querySelectorAll("input,select,textarea").forEach(el=>{
+    el.disabled = ro;
+  });
+  $("mom-save-btn").style.display = ro ? "none" : "inline-flex";
+  $("mom-remark-name").value = remarkAuthorPrefill() || (state.project.lead||"").trim() || "";
+  $("mom-remark-text").value = "";
+  const rs = remarkList("mom", m?m.id:"");
+  renderRemarks($("mom-remarks-list"), rs);
+  $("mom-remark-count").textContent = "("+rs.length+")";
+  $("mom-overlay").classList.remove("hidden");
+}
+function closeMomModal(){ $("mom-overlay").classList.add("hidden"); editingMomId=null; }
+function saveMom(){
+  if(viewerGuard()) return;
+  const title = $("m-title").value.trim();
+  const date = $("m-date").value;
+  if(!title){ toast("⚠️ Please enter a meeting title."); return; }
+  if(!date){ toast("⚠️ Please select the meeting date."); return; }
+  const data = {
+    date, title, attendees:$("m-attendees").value.trim(),
+    points:$("m-points").value.trim(), decisions:$("m-decisions").value.trim(),
+    actions:$("m-actions").value.trim(), next:$("m-next").value, updatedAt:Date.now()
+  };
+  if(editingMomId){ Object.assign(state.moms.find(x=>x.id===editingMomId),data); toast("✅ MoM updated."); }
+  else{ state.moms.push({id:uid("m"), ...data}); toast("✅ MoM saved."); }
+  persist(); closeMomModal(); renderAll();
+}
+function deleteMom(id){
+  if(viewerGuard()) return;
+  const m=state.moms.find(x=>x.id===id);
+  openConfirm("Delete meeting <b>"+esc(m.title)+"</b>? This cannot be undone.", ()=>{
+    state.moms = state.moms.filter(x=>x.id!==id);
+    persist(); renderAll(); toast("MoM deleted.");
+  });
+}
+
+/* ============ ⬇️ EXPORT TO EXCEL (.xlsx) — pure JS, no libraries ============ */
+function crc32Bytes(bytes){
+  let table = crc32Bytes.table;
+  if(!table){
+    table = [];
+    for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1); table[n]=c>>>0; }
+    crc32Bytes.table = table;
+  }
+  let c = 0xFFFFFFFF;
+  for(let i=0;i<bytes.length;i++) c = table[(c ^ bytes[i]) & 0xFF] ^ (c>>>8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+function utf8bytes(str){
+  const u = unescape(encodeURIComponent(str));
+  const a = new Uint8Array(u.length);
+  for(let i=0;i<u.length;i++) a[i]=u.charCodeAt(i);
+  return a;
+}
+function zipStore(entries){
+  /* entries: [{name, data(string)}] — builds a valid STORED zip (no compression) */
+  const u16 = v => { const b=new Uint8Array(2); new DataView(b.buffer).setUint16(0,v,true); return b; };
+  const u32 = v => { const b=new Uint8Array(4); new DataView(b.buffer).setUint32(0,v,true); return b; };
+  const chunks = [], central = [];
+  let offset = 0;
+  entries.forEach(e=>{
+    const name = utf8bytes(e.name), data = utf8bytes(e.data);
+    const crc = crc32Bytes(data);
+    const local = new Uint8Array(30);
+    new DataView(local.buffer).setUint32(0,0x04034b50,true);
+    new DataView(local.buffer).setUint16(4,20,true);
+    new DataView(local.buffer).setUint16(6,0x0800,true); /* UTF-8 names */
+    new DataView(local.buffer).setUint32(14,crc,true);
+    new DataView(local.buffer).setUint32(18,data.length,true);
+    new DataView(local.buffer).setUint32(22,data.length,true);
+    new DataView(local.buffer).setUint16(26,name.length,true);
+    chunks.push(local, name, data);
+    central.push({name, crc, size:data.length, off:offset});
+    offset += 30 + name.length + data.length;
+  });
+  const cdStart = offset;
+  central.forEach(e=>{
+    const h = new Uint8Array(46);
+    new DataView(h.buffer).setUint32(0,0x02014b50,true);
+    new DataView(h.buffer).setUint16(4,20,true);
+    new DataView(h.buffer).setUint16(6,20,true);
+    new DataView(h.buffer).setUint16(8,0x0800,true);
+    new DataView(h.buffer).setUint32(16,e.crc,true);
+    new DataView(h.buffer).setUint32(20,e.size,true);
+    new DataView(h.buffer).setUint32(24,e.size,true);
+    new DataView(h.buffer).setUint16(28,e.name.length,true);
+    new DataView(h.buffer).setUint32(42,e.off,true);
+    chunks.push(h, e.name);
+    offset += 46 + e.name.length;
+  });
+  const eocd = new Uint8Array(22);
+  new DataView(eocd.buffer).setUint32(0,0x06054b50,true);
+  new DataView(eocd.buffer).setUint16(8,central.length,true);
+  new DataView(eocd.buffer).setUint16(10,central.length,true);
+  new DataView(eocd.buffer).setUint32(12,offset-cdStart,true);
+  new DataView(eocd.buffer).setUint32(16,cdStart,true);
+  chunks.push(eocd);
+  const total = chunks.reduce((s,c)=>s+c.length,0);
+  const out = new Uint8Array(total); let p = 0;
+  chunks.forEach(c=>{ out.set(c,p); p += c.length; });
+  return out;
+}
+function xesc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function colL(n){ let s=""; while(n>0){ n--; s=String.fromCharCode(65+(n%26))+s; n=Math.floor(n/26); } return s; }
+function isoToSerial(iso){
+  if(!iso) return null;
+  const p = iso.split("-").map(Number);
+  return Math.round((Date.UTC(p[0],p[1]-1,p[2]) - Date.UTC(1899,11,30))/86400000);
+}
+function sheetXml(header, rows, opts){
+  const colCount = header.length;
+  let xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+  xml += '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">';
+  if(opts && opts.freeze) xml += '<sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>';
+  xml += '<cols>';
+  for(let i=1;i<=colCount;i++) xml += '<col min="'+i+'" max="'+i+'" width="'+((opts&&opts.widths&&opts.widths[i-1])||14)+'" customWidth="1"/>';
+  xml += '</cols><sheetData>';
+  xml += '<row r="1">'+header.map((h,i)=>'<c r="'+colL(i+1)+'1" t="inlineStr" s="3"><is><t>'+xesc(h)+'</t></is></c>').join("")+'</row>';
+  rows.forEach((row,ri)=>{
+    const rn = ri+2;
+    xml += '<row r="'+rn+'">'+row.map((cell,ci)=>{
+      const ref = colL(ci+1)+rn;
+      if(cell==null || cell.v==null || cell.v==="") return '<c r="'+ref+'"/>';
+      const v = cell.v;
+      if(cell.t==='n') return '<c r="'+ref+'"><v>'+v+'</v></c>';
+      if(cell.t==='d') return '<c r="'+ref+'" s="2"><v>'+isoToSerial(v)+'</v></c>';
+      if(cell.t==='p') return '<c r="'+ref+'" s="4"><v>'+v+'</v></c>';
+      return '<c r="'+ref+'" t="inlineStr"><is><t xml:space="preserve">'+xesc(v)+'</t></is></c>';
+    }).join("")+'</row>';
+  });
+  xml += '</sheetData>';
+  if(opts && opts.filter && rows.length) xml += '<autoFilter ref="A1:'+colL(colCount)+(rows.length+1)+'"/>';
+  xml += '</worksheet>';
+  return xml;
+}
+function exportExcel(){
+  const tasks = state.tasks, moms = state.moms, remarks = state.remarks||[];
+  const total = tasks.length;
+  const done = tasks.filter(t=>t.status==="done").length;
+  const ip = tasks.filter(t=>t.status==="in-progress").length;
+  const blocked = tasks.filter(t=>t.status==="blocked").length;
+  const over = tasks.filter(overdue).length;
+  const avg = total ? Math.round(tasks.reduce((s,t)=>s+pctOf(t),0)/total) : 0;
+  const h = health();
+  const now = new Date().toLocaleString("en-GB",{day:"2-digit",month:"long",year:"numeric",hour:"2-digit",minute:"2-digit"});
+  const lead = state.project.lead || "";
+
+  /* --- Summary sheet --- */
+  const sRows = [
+    [{v:"Project"},{v:state.project.name||"AI Automation Factory"}],
+    [{v:"Project Lead"},{v:lead||"—"}],
+    [{v:"Generated"},{v:now}],
+    [{v:"Overall Health"},{v:h.txt}],
+    [{v:"Overall Progress (%)"},{v:avg,t:"p"}],
+    [{v:"Total Tasks"},{v:total,t:"n"}],
+    [{v:"In Progress"},{v:ip,t:"n"}],
+    [{v:"Completed"},{v:done,t:"n"}],
+    [{v:"Overdue"},{v:over,t:"n"}],
+    [{v:"Blocked"},{v:blocked,t:"n"}],
+    [{v:"Open Tasks — High Priority"},{v:tasks.filter(t=>t.status!=="done"&&t.priority==="high").length,t:"n"}],
+    [{v:"Open Tasks — Medium Priority"},{v:tasks.filter(t=>t.status!=="done"&&t.priority==="medium").length,t:"n"}],
+    [{v:"Open Tasks — Low Priority"},{v:tasks.filter(t=>t.status!=="done"&&t.priority==="low").length,t:"n"}],
+  ];
+  ["Not Started","In Progress","Blocked","Done"].forEach(st=>{
+    sRows.push([{v:"Status — "+st},{v:tasks.filter(t=>t.status===st).length,t:"n"}]);
+  });
+
+  /* --- Tasks sheet --- */
+  const tRows = tasks.map(t=>{
+    const daysLeft = t.status==="done" ? "Done" : (t.target ? daysUntil(t.target) : "");
+    return [
+      {v:t.code},{v:t.title},{v:t.desc||""},{v:t.assignee||""},{v:t.area||""},{v:PRIOS[t.priority]?PRIOS[t.priority].label:t.priority},
+      {v:STATUSES[t.status]?STATUSES[t.status].label:t.status},
+      {v:t.start,t:"d"},{v:t.target,t:"d"},{v:(t.end||""),t:"d"},
+      {v:pctOf(t),t:"p"},{v:daysLeft, t:daysLeft==="Done"?"s":"n"},
+      {v:t.notes||""}
+    ];
+  });
+
+  /* --- MoM sheet --- */
+  const mRows = moms.map(m=>[
+    {v:m.date,t:"d"},{v:m.title||""},{v:m.attendees||""},
+    {v:lines(m.points).join("\n")},{v:lines(m.decisions).join("\n")},{v:lines(m.actions).join("\n")},
+    {v:(m.next||""),t:"d"}
+  ]);
+
+  /* --- Remarks sheet --- */
+  const rRows = remarks.map(r=>{
+    let parentRef = "";
+    if(r.type==="task"){ const t = tasks.find(x=>x.id===r.parentId); parentRef = t ? t.code+" — "+t.title : r.parentId; }
+    else { const m = moms.find(x=>x.id===r.parentId); parentRef = m ? m.title : r.parentId; }
+    const d = new Date(r.createdAt);
+    return [
+      {v:d.toLocaleString("en-GB",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"})},
+      {v:r.type==="task"?"Task":"Meeting"},{v:parentRef},{v:r.author||""},{v:r.text||""}
+    ];
+  });
+
+  const files = [
+    {name:"[Content_Types].xml", data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet3.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet4.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>'},
+    {name:"_rels/.rels", data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'},
+    {name:"xl/workbook.xml", data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Summary" sheetId="1" r:id="rId1"/><sheet name="Tasks" sheetId="2" r:id="rId2"/><sheet name="MoM" sheetId="3" r:id="rId3"/><sheet name="Remarks" sheetId="4" r:id="rId4"/></sheets></workbook>'},
+    {name:"xl/_rels/workbook.xml.rels", data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet3.xml"/><Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet4.xml"/><Relationship Id="rId5" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>'},
+    {name:"xl/styles.xml", data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="2"><numFmt numFmtId="164" formatCode="0&quot;%&quot;"/><numFmt numFmtId="165" formatCode="dd-mmm-yyyy"/></numFmts><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF0B2239"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="5"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>'},
+    {name:"xl/worksheets/sheet1.xml", data: sheetXml(["Item","Value"], sRows, {widths:[26,36]})},
+    {name:"xl/worksheets/sheet2.xml", data: sheetXml(["Task ID","Title","Description","Assignee","Area","Priority","Status","Start","Target","Ended","Progress %","Days Left","Notes"], tRows, {widths:[9,32,36,15,13,10,13,12,12,12,10,10,36], freeze:true, filter:true})},
+    {name:"xl/worksheets/sheet3.xml", data: sheetXml(["Date","Meeting Title","Attendees","Points Discussed","Decisions","Action Items","Next Meeting"], mRows, {widths:[12,26,26,40,34,38,12]})},
+    {name:"xl/worksheets/sheet4.xml", data: sheetXml(["Date & Time","Type","Task / Meeting","Author","Remark"], rRows, {widths:[20,10,40,16,44]})},
+  ];
+
+  const bytes = zipStore(files);
+  const blob = new Blob([bytes], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "AI-Factory-Export-"+todayISO()+".xlsx";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>{ try{ URL.revokeObjectURL(a.href); }catch(e){} }, 3000);
+  toast("⬇️ Excel file downloaded — 4 sheets (Summary, Tasks, MoM, Remarks)");
+}
+
+/* ---------- confirm modal ---------- */
+let confirmCb = null;
+function openConfirm(msg, cb){ $("confirm-msg").innerHTML = msg; confirmCb = cb; $("confirm-overlay").classList.remove("hidden"); }
+function closeConfirm(){ $("confirm-overlay").classList.add("hidden"); confirmCb=null; }
+function runConfirm(){ const cb=confirmCb; closeConfirm(); if(cb) cb(); }
+
+/* ---------- 📈 weekly auto-summary report ---------- */
+function isoDate(d){
+  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+}
+function setWeekRange(days){
+  if(days===0){ /* this week: Monday to today */
+    const t = new Date();
+    const day = (t.getDay()+6)%7;
+    const m = new Date(t); m.setDate(t.getDate()-day);
+    weekFrom = isoDate(m); weekTo = todayISO();
+  }else if(days===7){
+    weekFrom = addDays(-6); weekTo = todayISO();
+  }else{
+    weekFrom = addDays(-29); weekTo = todayISO();
+  }
+  $("w-from").value = weekFrom;
+  $("w-to").value = weekTo;
+  renderWeekly();
+}
+let weekFrom = null, weekTo = null;
+function isoFromTs(ts){
+  const d = new Date(ts);
+  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+}
+function computeWeekly(){
+  if(!weekFrom){ setWeekRange(7); }
+  weekFrom = $("w-from").value || weekFrom;
+  weekTo = $("w-to").value || weekTo;
+  const fromD = new Date(weekFrom+"T00:00:00"), toD = new Date(weekTo+"T23:59:59");
+  const inDate = s => { if(!s) return false; const d = new Date(s+"T00:00:00"); return d>=fromD && d<=toD; };
+  const inTs = ts => ts>=fromD.getTime() && ts<=toD.getTime();
+  const tasks = state.tasks, moms = state.moms, remarks = (state.remarks||[]).filter(r=>!r.deleted);
+  const completed = tasks.filter(t=>t.status==="done" && (inDate(t.end) || inTs(t.updatedAt))).sort((a,b)=>((b.end||b.updatedAt)>(a.end||a.updatedAt)?1:-1));
+  const started   = tasks.filter(t=>inDate(t.start)).sort((a,b)=>(a.start<b.start?1:-1));
+  const updated   = tasks.filter(t=>inTs(t.updatedAt)).sort((a,b)=>b.updatedAt-a.updatedAt);
+  const meetings  = moms.filter(m=>inDate(m.date)).sort((a,b)=>(a.date<b.date?1:-1));
+  const newRem    = remarks.filter(r=>inTs(r.createdAt)).sort((a,b)=>b.createdAt-a.createdAt);
+  const openTasks = tasks.filter(t=>t.status!=="done");
+  const overdueNow = openTasks.filter(overdue);
+  const dueSoon    = openTasks.filter(t=>t.target && daysUntil(t.target)>=0 && daysUntil(t.target)<=7);
+  const avg = tasks.length ? Math.round(tasks.reduce((s,t)=>s+pctOf(t),0)/tasks.length) : 0;
+  const h = health();
+  const gen = new Date().toLocaleString("en-GB",{day:"2-digit",month:"long",year:"numeric",hour:"2-digit",minute:"2-digit"});
+  return {weekFrom, weekTo, completed, started, updated, meetings, newRem, overdueNow, dueSoon, avg, h, gen};
+}
+function renderWeekly(){
+  const W = computeWeekly();
+  const {completed, started, updated, meetings, newRem, overdueNow, dueSoon, avg, h, gen} = W;
+
+  const rowsOf = (list, extra) => list.map(t=>
+    '<tr><td><b>'+t.code+'</b></td><td>'+esc(t.title)+'</td><td>'+esc(t.assignee||"—")+'</td><td>'+fmtDate(extra==="start"?t.start:(t.end||t.target))+'</td><td><b>'+pctOf(t)+'%</b></td></tr>'
+  ).join("") || '<tr><td colspan="5" class="muted" style="text-align:center;padding:14px">Nothing in this period.</td></tr>';
+
+  const meetingHtml = meetings.map(m=>{
+    const decisions = lines(m.decisions), actions = lines(m.actions);
+    return '<div style="border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;margin-bottom:8px;">'+
+      '<div style="font-weight:700;">'+esc(m.title)+' <span style="font-weight:400;color:#64748b;font-size:12px;">· '+fmtDate(m.date)+'</span></div>'+
+      (decisions.length?'<div style="margin-top:5px;font-size:12.5px;"><b>Decisions:</b> '+esc(decisions.join(" · "))+'</div>':'')+
+      (actions.length?'<div style="margin-top:3px;font-size:12.5px;"><b>Actions:</b> '+esc(actions.join(" · "))+'</div>':'')+
+    '</div>';
+  }).join("") || '<p class="muted">No meetings in this period.</p>';
+
+  const remarkHtml = newRem.map(r=>{
+    const d = new Date(r.createdAt);
+    return '<div class="rem-item"><div class="rem-av">'+initials(r.author)+'</div><div style="flex:1">'+
+      '<div class="rem-head"><b>'+esc(r.author)+'</b> <span class="muted">'+d.toLocaleDateString("en-GB",{day:"2-digit",month:"short"})+'</span> <span class="muted">on '+esc(r.type==="task"?"task":"meeting")+'</span></div>'+
+      '<div class="rem-text">'+esc(r.text)+'</div></div></div>';
+  }).join("") || '<p class="muted">No remarks added in this period.</p>';
+
+  const attentionHtml = overdueNow.concat(dueSoon).map(t=>{
+    const d = daysUntil(t.target);
+    const label = d<0 ? "⚠ "+Math.abs(d)+"d overdue" : "in "+d+"d";
+    return '<tr><td><b>'+t.code+'</b></td><td>'+esc(t.title)+'</td><td>'+esc(t.assignee||"—")+'</td><td>'+fmtDate(t.target)+'</td><td><span style="color:'+(d<0?'#b91c1c':'#b45309')+';font-weight:700">'+label+'</span></td></tr>';
+  }).join("") || '<tr><td colspan="5" class="muted" style="text-align:center;padding:14px">Nothing overdue and nothing due in the next 7 days. 🎉</td></tr>';
+
+  $("weekly-area").innerHTML =
+  '<div class="report">'+
+    '<div class="report-head">'+
+      '<h2>📈 Weekly Project Summary</h2>'+
+      '<div class="sub">'+fmtDate(W.weekFrom)+' → '+fmtDate(W.weekTo)+' · generated '+gen+' · Lead: '+esc(state.project.lead||"—")+'</div>'+
+      '<div style="margin-top:12px;"><span class="pill '+h.cls+'"><span class="dot"></span>'+h.txt+'</span> <span class="pill" style="background:rgba(255,255,255,.1);color:#e2e8f0;border:1px solid rgba(255,255,255,.2)">Overall progress '+avg+'%</span></div>'+
+    '</div>'+
+    '<div class="report-body">'+
+      '<div class="week-grid">'+
+        '<div class="stat"><div class="num" style="color:#15803d">'+completed.length+'</div><div class="lbl">Completed</div></div>'+
+        '<div class="stat"><div class="num" style="color:#2563eb">'+started.length+'</div><div class="lbl">Started</div></div>'+
+        '<div class="stat"><div class="num">'+updated.length+'</div><div class="lbl">Tasks updated</div></div>'+
+        '<div class="stat"><div class="num" style="color:#7c3aed">'+meetings.length+'</div><div class="lbl">Meetings</div></div>'+
+        '<div class="stat"><div class="num" style="color:#7c3aed">'+newRem.length+'</div><div class="lbl">New remarks</div></div>'+
+        '<div class="stat"><div class="num" style="color:#b45309">'+dueSoon.length+'</div><div class="lbl">Due in 7 days</div></div>'+
+        '<div class="stat"><div class="num" style="color:#b91c1c">'+overdueNow.length+'</div><div class="lbl">Overdue now</div></div>'+
+      '</div>'+
+      '<h4>✅ Completed in this period ('+completed.length+')</h4>'+
+      '<div class="table-wrap"><table style="min-width:0"><thead><tr><th>ID</th><th>Task</th><th>Assignee</th><th>Completed on</th><th>%</th></tr></thead><tbody>'+rowsOf(completed)+'</tbody></table></div>'+
+      '<h4>🚀 Started in this period ('+started.length+')</h4>'+
+      '<div class="table-wrap"><table style="min-width:0"><thead><tr><th>ID</th><th>Task</th><th>Assignee</th><th>Started on</th><th>%</th></tr></thead><tbody>'+rowsOf(started,"start")+'</tbody></table></div>'+
+      '<h4>📝 Meetings in this period ('+meetings.length+')</h4>'+meetingHtml+
+      '<h4>💬 Remarks added in this period ('+newRem.length+')</h4>'+remarkHtml+
+      '<h4>⚠️ Needs attention — overdue now & due in next 7 days</h4>'+
+      '<div class="table-wrap"><table style="min-width:0"><thead><tr><th>ID</th><th>Task</th><th>Assignee</th><th>Target</th><th>Days</th></tr></thead><tbody>'+attentionHtml+'</tbody></table></div>'+
+      '<div class="foot">Auto-generated weekly summary · '+esc(state.project.name||"AI Automation Factory")+' · update the Tasks & MoM sheets daily to keep this accurate</div>'+
+    '</div>'+
+  '</div>';
+}
+function exportWeeklyExcel(){
+  const W = computeWeekly();
+  const {weekFrom, weekTo, completed, started, meetings, newRem, overdueNow, dueSoon, avg, h, gen} = W;
+  const lead = state.project.lead || "";
+  const summaryRows = [
+    [{v:"Period From"},{v:weekFrom,t:"d"}],
+    [{v:"Period To"},{v:weekTo,t:"d"}],
+    [{v:"Generated"},{v:gen}],
+    [{v:"Project Lead"},{v:lead||"—"}],
+    [{v:"Overall Health"},{v:h.txt}],
+    [{v:"Overall Progress (%)"},{v:avg,t:"p"}],
+    [{v:"Completed in period"},{v:completed.length,t:"n"}],
+    [{v:"Started in period"},{v:started.length,t:"n"}],
+    [{v:"Tasks updated in period"},{v:W.updated.length,t:"n"}],
+    [{v:"Meetings in period"},{v:meetings.length,t:"n"}],
+    [{v:"New remarks in period"},{v:newRem.length,t:"n"}],
+    [{v:"Due in next 7 days"},{v:dueSoon.length,t:"n"}],
+    [{v:"Overdue now"},{v:overdueNow.length,t:"n"}],
+  ];
+  const compRows = completed.map(t=>[
+    {v:t.code},{v:t.title},{v:t.assignee||""},{v:t.end||isoFromTs(t.updatedAt),t:"d"},{v:pctOf(t),t:"p"}
+  ]);
+  const startRows = started.map(t=>[
+    {v:t.code},{v:t.title},{v:t.assignee||""},{v:t.start,t:"d"},{v:pctOf(t),t:"p"}
+  ]);
+  const meetRows = meetings.map(m=>[
+    {v:m.date,t:"d"},{v:m.title||""},{v:m.attendees||""},{v:lines(m.decisions).join("\n")},{v:lines(m.actions).join("\n")}
+  ]);
+  const remRows = newRem.map(r=>{
+    let parentRef = "";
+    if(r.type==="task"){ const t=state.tasks.find(x=>x.id===r.parentId); parentRef = t ? t.code+" — "+t.title : r.parentId; }
+    else { const m=state.moms.find(x=>x.id===r.parentId); parentRef = m ? m.title : r.parentId; }
+    return [{v:isoFromTs(r.createdAt),t:"d"},{v:r.author||""},{v:r.type==="task"?"Task":"Meeting"},{v:parentRef},{v:r.text||""}];
+  });
+  const attRows = overdueNow.concat(dueSoon).map(t=>[
+    {v:t.code},{v:t.title},{v:t.assignee||""},{v:t.target,t:"d"},{v:daysUntil(t.target),t:"n"}
+  ]);
+  const files = [
+    {name:"[Content_Types].xml", data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet3.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet4.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet5.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet6.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>'},
+    {name:"_rels/.rels", data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'},
+    {name:"xl/workbook.xml", data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Summary" sheetId="1" r:id="rId1"/><sheet name="Completed" sheetId="2" r:id="rId2"/><sheet name="Started" sheetId="3" r:id="rId3"/><sheet name="Meetings" sheetId="4" r:id="rId4"/><sheet name="Remarks" sheetId="5" r:id="rId5"/><sheet name="Attention" sheetId="6" r:id="rId6"/></sheets></workbook>'},
+    {name:"xl/_rels/workbook.xml.rels", data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet3.xml"/><Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet4.xml"/><Relationship Id="rId5" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet5.xml"/><Relationship Id="rId6" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet6.xml"/><Relationship Id="rId7" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>'},
+    {name:"xl/styles.xml", data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="2"><numFmt numFmtId="164" formatCode="0&quot;%&quot;"/><numFmt numFmtId="165" formatCode="dd-mmm-yyyy"/></numFmts><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF0B2239"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="5"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>'},
+    {name:"xl/worksheets/sheet1.xml", data: sheetXml(["Item","Value"], summaryRows, {widths:[26,38]})},
+    {name:"xl/worksheets/sheet2.xml", data: sheetXml(["Task ID","Task","Assignee","Completed On","Progress %"], compRows, {widths:[9,38,15,13,11], freeze:true})},
+    {name:"xl/worksheets/sheet3.xml", data: sheetXml(["Task ID","Task","Assignee","Started On","Progress %"], startRows, {widths:[9,38,15,13,11], freeze:true})},
+    {name:"xl/worksheets/sheet4.xml", data: sheetXml(["Date","Meeting Title","Attendees","Decisions","Action Items"], meetRows, {widths:[12,26,26,40,40], freeze:true})},
+    {name:"xl/worksheets/sheet5.xml", data: sheetXml(["Date","Author","Type","Task / Meeting","Remark"], remRows, {widths:[12,16,10,40,44], freeze:true})},
+    {name:"xl/worksheets/sheet6.xml", data: sheetXml(["Task ID","Task","Assignee","Target Date","Days Left"], attRows, {widths:[9,38,15,13,10], freeze:true})},
+  ];
+  const bytes = zipStore(files);
+  const blob = new Blob([bytes], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "AI-Factory-Weekly-"+weekFrom+"-to-"+weekTo+".xlsx";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>{ try{ URL.revokeObjectURL(a.href); }catch(e){} }, 3000);
+  toast("⬇️ Weekly Excel downloaded — 6 sheets ("+fmtDate(weekFrom)+" → "+fmtDate(weekTo)+")");
+}
+
+/* ---------- settings ---------- */
+function openSettings(){
+  $("s-name").value = state.project.name||"";
+  $("s-lead").value = state.project.lead||"";
+  refreshCloudPanel();
+  renderAuthPanel();
+  $("settings-overlay").classList.remove("hidden");
+}
+function closeSettings(){ $("settings-overlay").classList.add("hidden"); }
+function saveSettings(){
+  state.project.name = $("s-name").value.trim() || "AI Automation Factory";
+  state.project.lead = $("s-lead").value.trim();
+  persist(); closeSettings(); renderAll(); toast("✅ Settings saved.");
+}
+function exportBackup(){
+  const blob = new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "ai-factory-tracker-backup-"+todayISO()+".json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast("⬇️ Backup downloaded — keep it safe!");
+}
+function importBackup(ev){
+  if(viewerGuard()) return;
+  const f = ev.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = ()=>{
+    try{
+      const d = JSON.parse(r.result);
+      if(!d || !Array.isArray(d.tasks) || !Array.isArray(d.moms)) throw new Error("bad");
+      memory.tasks = d.tasks; memory.moms = d.moms;
+      if(d.project){ memory.project = d.project; }
+      persist(); renderAll(); closeSettings(); toast("✅ Backup imported.");
+    }catch(e){ toast("❌ Invalid backup file."); }
+  };
+  r.readAsText(f);
+  ev.target.value="";
+}
+function loadDemo(){
+  if(viewerGuard()) return;
+  openConfirm("Replace current data with sample demo data? (Useful to explore before you start for real.)", ()=>{ seedDemo(); });
+}
+function confirmClear(){
+  if(viewerGuard()) return;
+  openConfirm("Delete <b>ALL tasks and meetings</b>? Consider exporting a backup first.", ()=>{
+    state.tasks=[]; state.moms=[]; state.project={name:"AI Automation Factory", lead:""};
+    persist(); renderAll(); closeSettings(); toast("All data cleared.");
+  });
+}
+
+/* ============ ☁️ CLOUD SYNC — one shared copy for all browsers/devices ============ */
+const PANTRY_BASE = "https://getpantry.cloud/apiv1/pantry";
+
+function cloudId(){ return (state.cloud && state.cloud.url) ? state.cloud.url : ""; }
+function rememberCloudUrl(url){
+  try{ localStorage.setItem("aifactory_last_url", url); }catch(e){}
+  try{ sessionStorage.setItem("aifactory_last_url", url); }catch(e){}
+  /* keep the link in the page URL too, so a reload reconnects even without storage */
+  if(location.protocol!=="file:"){
+    try{ history.replaceState(null, "", location.pathname + location.search + "#cloud=" + encodeURIComponent(url)); }catch(e){}
+  }
+}
+function lastCloudUrl(){
+  let u = "";
+  try{ u = localStorage.getItem("aifactory_last_url") || ""; }catch(e){}
+  if(!u){ try{ u = sessionStorage.getItem("aifactory_last_url") || ""; }catch(e){} }
+  return u;
+}
+function setCloudChip(mode, info){
+  const chip = $("cloud-chip"), txt = $("cloud-chip-txt");
+  const sb = $("share-live-btn");
+  if(mode==="off"){ chip.style.display="none"; if(sb) sb.style.display="none"; return; }
+  chip.style.display="inline-flex";
+  chip.className = "pill " + (mode==="ok"?"syncok":mode==="err"?"syncerr":"syncbusy");
+  if(mode==="ok"){ txt.textContent = "☁️ LIVE · synced"; chip.title = info||"All browsers share the same data"; if(sb) sb.style.display = state.viewerMode ? "none" : "inline-flex"; }
+  else if(mode==="sync"){ txt.textContent = "☁️ Syncing…"; chip.title="Syncing with cloud…"; }
+  else { txt.textContent = "☁️ Offline"; chip.title = "Cloud unreachable — changes are safe on this device and will sync when the cloud is reachable again."; }
+}
+async function httpJson(url, method, body){
+  const opts = { method: method||"GET", headers:{} };
+  if(body!==undefined){ opts.headers["Content-Type"]="application/json"; opts.body = JSON.stringify(body); }
+  if(isFirebaseCloud() && /firebaseio\.com|firebasedatabase\.app/i.test(url) && firebaseAuth && firebaseAuth.idToken){
+    opts.headers["Authorization"] = "Bearer "+firebaseAuth.idToken;
+  }
+  const res = await fetch(url, opts);
+  const txt = await res.text();
+  let data = null; try{ data = JSON.parse(txt); }catch(e){}
+  if(!res.ok) throw new Error((data && data.error) || ("HTTP "+res.status));
+  return data;
+}
+/* merge two states: per task/meeting, the one edited later wins */
+function mergeStates(a, b){
+  const pick = (la, lb) => {
+    const map = {};
+    (la||[]).concat(lb||[]).forEach(e=>{
+      if(e && e.id && (!map[e.id] || (e.updatedAt||0) >= (map[e.id].updatedAt||0))) map[e.id]=e;
+    });
+    return Object.values(map);
+  };
+  const ra = a.rev||0, rb = b.rev||0;
+  return {
+    project: (ra>=rb ? a.project : b.project) || {},
+    tasks: pick(a.tasks, b.tasks),
+    moms: pick(a.moms, b.moms),
+    remarks: pick(a.remarks, b.remarks),
+    rev: Math.max(ra, rb),
+    updatedBy: (ra>=rb ? a.updatedBy : b.updatedBy) || "",
+    access: (ra>=rb ? a.access : b.access) || a.access || b.access || {ownerUid:"",editors:{}},
+    cloud: (a.cloud && a.cloud.url) ? a.cloud : b.cloud,
+    seeded: true
+  };
+}
+let _syncing = false;
+function canWriteCloud(){
+  return !state.viewerMode && (!isFirebaseCloud() || isAuthorizedEditor());
+}
+async function syncNow(quiet){
+  const url = cloudId();
+  if(!url){ setCloudChip("off"); return; }
+  if(_syncing) return;
+  _syncing = true; setCloudChip("sync");
+  try{
+    if(isFirebaseCloud()) await ensureFirebaseAuth();
+    let remote = null;
+    try{ remote = await httpJson(url, "GET"); }catch(e){
+      if(!/^HTTP 404/i.test(String(e && e.message || e))) throw e;
+    }
+    const localRev = state.rev||0, remoteRev = remote && typeof remote==="object" ? (remote.rev||0) : 0;
+    const hadLocal = localRev > (state.lastSyncedRev||0) || state.pending === true;
+    const merged = (remote && typeof remote==="object") ? mergeStates(remote, state) : state;
+    const diffT = JSON.stringify(merged.tasks)!==JSON.stringify(state.tasks);
+    const diffM = JSON.stringify(merged.moms)!==JSON.stringify(state.moms);
+    const diffR = JSON.stringify(merged.remarks)!==JSON.stringify(state.remarks);
+    const diffA = JSON.stringify(merged.access)!==JSON.stringify(state.access);
+    if(diffT || diffM || diffR || diffA){
+      Object.assign(state, merged);
+      ensureAccess();
+      state.lastSyncedRev = remoteRev;
+      persistSilent();
+      renderAll();
+      if(!quiet) toast("☁️ Got live updates from the cloud"+(remote.updatedBy? " (edited by "+remote.updatedBy+")":""));
+    }else if(remoteRev >= localRev){
+      state.lastSyncedRev = remoteRev;
+    }
+    if(hadLocal && canWriteCloud()){
+      const claimed = ensureCurrentEditorIsOwnerIfNeeded();
+      if(claimed) state.rev = Math.max(state.rev||0,remoteRev)+1;
+      const payload = sanitizeState(state);
+      payload.rev = Math.max(state.rev||0, remoteRev) + 1;
+      payload.updatedBy = (state.project.lead||"").trim() || "Team member";
+      await httpJson(url, "PUT", payload);
+      state.lastSyncedRev = payload.rev;
+      state.rev = payload.rev;
+      state.pending = false;
+      persistSilent();
+      if(!quiet) toast("☁️ Synced to cloud");
+    }
+    setCloudChip("ok", "Authenticated cloud sync · last updated by "+(state.updatedBy||"—")+" · "+new Date().toLocaleTimeString());
+    renderAuthPanel();
+  }catch(e){
+    state.cloud = state.cloud || {url:"",kind:"firebase"};
+    state.cloud.failed = true;
+    try{ localStorage.setItem("aifactory_last_url", state.cloud.url); }catch(err){}
+    setCloudChip("err");
+    if(!quiet){
+      const msg = String(e && e.message || e);
+      let hint = /^HTTP 401|403/i.test(msg) ? " Check that Anonymous authentication is enabled and your Realtime Database rules are published."
+        : /API_KEY_INVALID|Web API key is missing/i.test(msg) ? " Add the correct Firebase Web API key in Settings."
+        : /not authorized to write/i.test(msg) ? " This account is not in the project's editor list."
+        : /cors/i.test(msg) ? " The service blocks browser access (CORS)."
+        : " Check your internet connection.";
+      toast("☁️ Cloud sync failed ("+msg+")."+hint);
+    }
+  }finally{ _syncing = false; }
+}
+function persistSilent(){
+  let ok = false;
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(sanitizeState(state))); ok = true; }catch(e){}
+  try{ sessionStorage.setItem(LS_KEY, JSON.stringify(sanitizeState(state))); ok = true; }catch(e){}
+  if(!ok) previewMode = true;
+}
+let _syncTimer = null;
+function scheduleSync(){ if(!cloudId()) return; clearTimeout(_syncTimer); _syncTimer = setTimeout(()=>syncNow(true), 1500); }
+function persist(){
+  if(state.viewerMode) return;
+  state.pending = true;                 /* unsynced local changes exist */
+  state.rev = (state.rev||0) + 1;
+  saveState(); scheduleSync();
+}
+
+/* ---- connect / disconnect ---- */
+function normalizeFirebaseUrl(u){
+  u = u.trim().replace(/\/+$/,"");
+  if(!/^https?:\/\//i.test(u)) u = "https://" + u;
+  if(/\.json$/i.test(u)) return u;
+  return u + "/tracker.json";
+}
+function connectFirebase(){
+  const id = $("firebase-url").value.trim();
+  const key = $("firebase-api-key").value.trim() || getFirebaseApiKey();
+  if(!id){ toast("⚠️ Paste your Firebase database URL first."); return; }
+  if(!key){ toast("⚠️ Paste your Firebase Web API key first."); return; }
+  setFirebaseApiKey(key);
+  doConnect(normalizeFirebaseUrl(id), "firebase");
+}
+function connectCustom(){
+  const url = $("custom-url").value.trim();
+  if(!url){ toast("⚠️ Paste your sync.php link first."); return; }
+  doConnect(url, "server");
+}
+function connectCustom2(){
+  const url = $("custom-url2").value.trim();
+  if(!url){ toast("⚠️ Paste a link first."); return; }
+  doConnect(url, "custom");
+}
+async function doConnect(url, kind){
+  if(viewerGuard()) return;
+  closeSettings(); toast("☁️ Connecting to cloud…");
+  const cloudConfig={url:url,kind:kind};
+  state.cloud = cloudConfig;
+  try{
+    if(kind==="firebase") await ensureFirebaseAuth();
+    let remote = null;
+    try{ remote = await httpJson(url, "GET"); }catch(e){
+      if(!/^HTTP 404/i.test(String(e && e.message || e))) throw e;
+    }
+    const hasRemote = remote && typeof remote==="object" && (Array.isArray(remote.tasks) || Array.isArray(remote.moms));
+    const merged = hasRemote ? mergeStates(remote, state) : state;
+    Object.assign(state, merged);
+    state.cloud = cloudConfig;
+    ensureAccess();
+    state.rev = Math.max(state.rev||0, hasRemote ? (remote.rev||0) : 0) + 1;
+    state.lastSyncedRev = hasRemote ? (remote.rev||0) : 0;
+    state.pending = true;
+    persistSilent();
+    rememberCloudUrl(url);
+    renderAll();
+    setCloudChip("ok", "Connected — authentication is required for writes");
+    if(kind==="firebase" && !isAuthorizedEditor()){
+      showLock("Sign in with an authorized editor account to upload and edit.");
+    }else{
+      await syncNow(false);
+    }
+    toast(hasRemote
+      ? "✅ Cloud connected! Existing data was merged safely."
+      : "✅ Firebase connected. Sign in as an editor to upload and edit the tracker.");
+  }catch(e){
+    state.cloud = state.cloud && state.cloud.url ? {url:state.cloud.url,kind:kind,failed:true} : {url:"",kind:kind};
+    rememberCloudUrl(state.cloud.url);
+    persistSilent();
+    const msg = String(e && e.message || e);
+    let hint = /API_KEY_INVALID|Web API key is missing/i.test(msg) ? " Check the Firebase Web API key."
+      : /^HTTP 401|403/i.test(msg) ? " Enable Anonymous authentication and publish the secure Realtime Database rules."
+      : /^HTTP 404/i.test(msg) ? " Check the database URL."
+      : /cors/i.test(msg) ? " The service blocks browser access (CORS)."
+      : " Check your internet connection.";
+    toast("❌ Could not connect: "+msg+"."+hint);
+  }
+  openSettings(); refreshCloudPanel();
+}
+
+function reconnectLast(){
+  const u = lastCloudUrl();
+  if(!u){ toast("No saved link found — paste it below."); return; }
+  $("firebase-url").value = u.replace(/\/tracker\.json$/i, "");
+  $("firebase-api-key").value = getFirebaseApiKey();
+  if(!getFirebaseApiKey()){ toast("Paste the Firebase Web API key before reconnecting."); return; }
+  doConnect(u, "firebase");
+}
+function disconnectCloud(){
+  if(viewerGuard()) return;
+  openConfirm("Disconnect cloud sync? Changes will then only be saved on this device again.", ()=>{
+    state.cloud = {url:"", kind:"", rev:0, updatedBy:""};
+    persistSilent(); setCloudChip("off"); refreshCloudPanel(); toast("Cloud disconnected.");
+  });
+}
+function shareLink(viewOnly){
+  const url = cloudId();
+  if(!url || location.protocol==="file:") return "";
+  const key = isFirebaseCloud() ? getFirebaseApiKey() : "";
+  if(isFirebaseCloud() && !key) return "";
+  return location.href.split("#")[0] + "#cloud=" + encodeURIComponent(url) + (key ? "&key="+encodeURIComponent(key) : "") + (viewOnly ? "&view=1" : "&edit=1");
+}
+function copyShareLink(viewOnly){
+  const share = shareLink(viewOnly);
+  if(!share){
+    toast("⚠️ First open the tracker from its hosted website URL (deploy the file on Netlify/GitHub Pages, then open it from there) — then this button gives you the one-link share.");
+    $("cloud-share-hint").innerHTML = "To get a single share link, the tracker must be open from its <b>hosted URL</b>, not from the local file. Deploy once (see README), open the site, then click this button again.";
+    return;
+  }
+  const ta = document.createElement("textarea");
+  ta.value = share; document.body.appendChild(ta); ta.select();
+  try{ document.execCommand("copy"); }catch(e){}
+  document.body.removeChild(ta);
+  toast(viewOnly ? "👁️ Read-only link copied!" : "📋 Live link copied!");
+  $("cloud-share-hint").innerHTML = (viewOnly
+    ? "Send this to <b>shareholders</b> — they open it and see the live dashboard in read-only mode (no edits or writes):<br><b>"+esc(share)+"</b>"
+    : "Send this to <b>your team</b> — they open it and sign in with an authorized Firebase editor account:<br><b>"+esc(share)+"</b>")+
+    "<br>No downloads, no setup — one link is all they need.";
+}
+function refreshCloudPanel(){
+  const on = !!cloudId();
+  $("cloud-connected").classList.toggle("hidden", !on);
+  $("cloud-disconnected").classList.toggle("hidden", on);
+  if(on){
+    $("cloud-url-display").value = cloudId();
+    if($("firebase-api-key")) $("firebase-api-key").value = getFirebaseApiKey();
+    const failed = state.cloud && state.cloud.failed;
+    $("cloud-last").innerHTML = (failed ? '<span style="color:#b91c1c;font-weight:700">Last attempt failed — check the Firebase settings and press Sync now.</span><br>' : "")
+      + "Last synced: "+new Date().toLocaleTimeString()+" · last updated by "+(state.updatedBy||"—");
+    renderAuthPanel();
+  }else{
+    const lu = lastCloudUrl();
+    if($("firebase-api-key")) $("firebase-api-key").value = getFirebaseApiKey();
+    if(lu){
+      $("firebase-url").value = lu.replace(/\/tracker\.json$/i, "");
+      let hint = $("cloud-reconnect-hint");
+      if(!hint){
+        hint = document.createElement("p");
+        hint.id = "cloud-reconnect-hint";
+        hint.className = "hint";
+        hint.style.marginTop = "8px";
+        $("cloud-disconnected").appendChild(hint);
+      }
+      hint.innerHTML = 'Saved link from last time — <button class="btn small" onclick="reconnectLast()">🔄 Reconnect</button> or paste a new one below.';
+    }
+  }
+}
+
+/* ---------- init ---------- */
+function init(){
+  /* defaults for newer fields on older saved data */
+  if(!("rev" in state)) state.rev = 0;
+  if(!("lastSyncedRev" in state)) state.lastSyncedRev = 0;
+  if(!("pending" in state)) state.pending = false;
+  if(!state.cloud) state.cloud = {url:"", kind:"", rev:0, updatedBy:""};
+  if(!state.cloud.kind && state.cloud.url) state.cloud.kind = /firebaseio\.com|firebasedatabase\.app/i.test(state.cloud.url)?"firebase":"custom";
+  if(!Array.isArray(state.remarks)) state.remarks = [];
+  ensureAccess();
+  loadAuthSession();
+  getFirebaseApiKey();
+  state.editLocked = false;
+
+  /* Mode, database URL and public Firebase Web API key come from the share URL.
+     The API key identifies the Firebase web app; it is not a database secret. */
+  try{
+    const h = location.hash || "";
+    const params = new URLSearchParams(h.replace(/^#/,""));
+    const isView = params.get("view")==="1" || params.get("viewer")==="1";
+    const isEdit = params.get("edit")==="1";
+    const cu = params.get("cloud") || "";
+    const key = params.get("key") || "";
+    if(key) setFirebaseApiKey(key);
+    state.viewerMode = isView;
+    if(cu && cu.indexOf("http")===0){
+      state.cloud = {url:cu,kind:(/firebaseio\.com|firebasedatabase\.app/i.test(cu)?"firebase":"custom"),rev:0,updatedBy:""};
+      state.lastSyncedRev = 0;
+      state.rev = Math.max(1, state.rev||0);
+    }else if(state.cloud && state.cloud.url && !state.cloud.kind){
+      state.cloud.kind = /firebaseio\.com|firebasedatabase\.app/i.test(state.cloud.url)?"firebase":"custom";
+    }
+    wantsEditMode = !isView && (isEdit || !!cloudId());
+    state.editLocked = false;
+    if(cu){ try{ history.replaceState(null, "", location.pathname + location.search); }catch(e){} }
+  }catch(e){}
+  if(state.viewerMode){
+    document.body.classList.add("viewer");
+  }
+
+  document.addEventListener("keydown", e=>{
+    if(e.key==="Escape"){
+      closeTaskModal(); closeMomModal(); closeConfirm(); closeSettings();
+    }
+  });
+  // click outside modal to close
+  ["task-overlay","mom-overlay","settings-overlay","confirm-overlay"].forEach(id=>{
+    $(id).addEventListener("click", e=>{ if(e.target===$(id)){ if(id==="task-overlay")closeTaskModal(); else if(id==="mom-overlay")closeMomModal(); else if(id==="settings-overlay")closeSettings(); else closeConfirm(); } });
+  });
+  if(!state.viewerMode && !state.tasks.length && !state.moms.length && !state.seeded){
+    state.seeded = true; persist();
+  }
+  if(previewMode) $("preview-banner").classList.remove("hidden");
+  renderAll();
+  /* cloud sync: initial sync, periodic auto-pull, re-sync on focus */
+  if(cloudId()){
+    /* show a loading screen for stakeholders on their first visit */
+    const showBoot = !state.tasks.length && !state.moms.length;
+    if(showBoot) $("boot-overlay").classList.remove("hidden");
+    syncNow(true).then(()=>{
+        $("boot-overlay").classList.add("hidden");
+        if(!state.viewerMode && !state.editLocked && wantsEditMode) evaluateLock();
+      }).catch(()=>{
+        $("boot-overlay").classList.add("hidden");
+        if(!state.viewerMode && !state.editLocked && wantsEditMode) evaluateLock();
+      });
+    setTimeout(()=>{ $("boot-overlay").classList.add("hidden"); }, 10000);
+    setInterval(()=>{ if(!document.hidden) syncNow(true); }, 45000);
+    window.addEventListener("focus", ()=>syncNow(true));
+    document.addEventListener("visibilitychange", ()=>{ if(!document.hidden && cloudId()) syncNow(true); });
+  }
+}
+init();
+
+/* expose functions used by inline onclick handlers */
+Object.assign(window, {
+  switchTab, setTaskView, renderTasks, renderReport,
+  openTaskModal, closeTaskModal, saveTask, moveTask, deleteTask,
+  openMomModal, closeMomModal, saveMom, deleteMom,
+  openSettings, closeSettings, saveSettings,
+  exportBackup, importBackup, loadDemo, confirmClear,
+  openConfirm, closeConfirm, runConfirm,
+  syncNow, connectFirebase, connectCustom, connectCustom2, disconnectCloud, shareLink, copyShareLink,
+  exportExcel, exportWeeklyExcel, deleteRemark, pushState, reconnectLast,
+  tryUnlock, viewOnlyFallback, evaluateLock, signInEditor, signOutFirebase, addEditorUid,
+  addTaskRemark, addMomRemark, pushRemark,
+  renderWeekly, setWeekRange
+});
+})();
+</script>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a31917fcfc7efdd4',t:'MTc4NzgxMjkxOQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
